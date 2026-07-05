@@ -18,7 +18,7 @@ export function macd(
   const macdLine: (number | null)[] = values.map((_, i) => {
     const f = emaFast[i];
     const s = emaSlow[i];
-    return f !== null && s !== null ? f - s : null;
+    return f != null && s != null ? f - s : null;
   });
 
   // Collect defined macd values, EMA them, map back to original indices.
@@ -40,7 +40,7 @@ export function macd(
   const histogram: (number | null)[] = values.map((_, i) => {
     const m = macdLine[i];
     const s = signal[i];
-    return m !== null && s !== null ? m - s : null;
+    return m != null && s != null ? m - s : null;
   });
 
   return { macd: macdLine, signal, histogram };

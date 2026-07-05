@@ -31,7 +31,7 @@ export function generateSignal(
   const ema12 = ema(closes, 12)[lastIdx];
   const ema26 = ema(closes, 26)[lastIdx];
   const emaCrossover: IndicatorSnapshot["emaCrossover"] =
-    ema12 !== null && ema26 !== null
+    ema12 != null && ema26 != null
       ? ema12 > ema26
         ? "bullish"
         : ema12 < ema26
@@ -46,9 +46,9 @@ export function generateSignal(
   const upper = bb.upper[lastIdx];
   const lower = bb.lower[lastIdx];
   const bollingerPos: IndicatorSnapshot["bollinger"] =
-    lower !== null && lastClose <= lower
+    lower != null && lastClose <= lower
       ? "lower"
-      : upper !== null && lastClose >= upper
+      : upper != null && lastClose >= upper
         ? "upper"
         : "mid";
 
