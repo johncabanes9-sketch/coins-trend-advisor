@@ -1,6 +1,6 @@
 # Coins Trend Advisor — `core` Library Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the framework-agnostic `core` TypeScript library — indicator math, signal generation, profit calculator, and a Coins.ph public-API client — that both the future `web` backend and `mcp-server` will import.
 
@@ -70,7 +70,7 @@ core/
   - `Trend = "strong_buy" | "buy" | "hold" | "sell" | "strong_sell"`.
   - `IndicatorSnapshot`, `Signal` (as in the design spec).
 
-- [ ] **Step 1: Create `core/package.json`**
+- [x] **Step 1: Create `core/package.json`**
 
 ```json
 {
@@ -101,7 +101,7 @@ core/
 }
 ```
 
-- [ ] **Step 2: Create `core/tsconfig.json`**
+- [x] **Step 2: Create `core/tsconfig.json`**
 
 ```json
 {
@@ -121,7 +121,7 @@ core/
 }
 ```
 
-- [ ] **Step 3: Create `core/vitest.config.ts`**
+- [x] **Step 3: Create `core/vitest.config.ts`**
 
 ```ts
 import { defineConfig } from "vitest/config";
@@ -134,7 +134,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 4: Create `core/tsup.config.ts`**
+- [x] **Step 4: Create `core/tsup.config.ts`**
 
 ```ts
 import { defineConfig } from "tsup";
@@ -147,7 +147,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: Create `core/src/types.ts`**
+- [x] **Step 5: Create `core/src/types.ts`**
 
 ```ts
 /** One candlestick, normalized from the Coins.ph klines response. */
@@ -187,12 +187,12 @@ export const DISCLAIMER =
   "Technical-indicator-based estimate, not a guarantee of outcome.";
 ```
 
-- [ ] **Step 6: Install deps and verify typecheck**
+- [x] **Step 6: Install deps and verify typecheck**
 
 Run: `cd core && npm install && npm run typecheck`
 Expected: install succeeds; `tsc --noEmit` exits 0 with no output.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add core/package.json core/tsconfig.json core/vitest.config.ts core/tsup.config.ts core/src/types.ts
@@ -215,7 +215,7 @@ git commit -m "chore(core): scaffold package, tooling, and shared types"
   - Position `period-1` is the SMA seed (mean of the first `period` values).
   - Each later position `i` = `values[i] * k + prev * (1 - k)` where `k = 2 / (period + 1)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/indicators/ema.test.ts
@@ -240,12 +240,12 @@ describe("ema", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/indicators/ema.test.ts`
 Expected: FAIL — cannot resolve `../../src/indicators/ema.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/indicators/ema.ts
@@ -269,12 +269,12 @@ export function ema(values: number[], period: number): (number | null)[] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/indicators/ema.test.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/indicators/ema.ts core/test/indicators/ema.test.ts
@@ -293,7 +293,7 @@ git commit -m "feat(core): add EMA indicator"
 - Consumes: nothing.
 - Produces: `rsi(values: number[], period: number): (number | null)[]`, aligned to input length. Uses Wilder's smoothing. First RSI value is at index `period` (needs `period` price changes). When average loss is 0, RSI is 100.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/indicators/rsi.test.ts
@@ -318,12 +318,12 @@ describe("rsi", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/indicators/rsi.test.ts`
 Expected: FAIL — cannot resolve `rsi.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/indicators/rsi.ts
@@ -362,12 +362,12 @@ function toRsi(avgGain: number, avgLoss: number): number {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/indicators/rsi.test.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/indicators/rsi.ts core/test/indicators/rsi.test.ts
@@ -386,7 +386,7 @@ git commit -m "feat(core): add RSI indicator (Wilder smoothing)"
 - Consumes: nothing.
 - Produces: `bollinger(values: number[], period: number, k: number): { middle: (number|null)[]; upper: (number|null)[]; lower: (number|null)[] }`. Middle = SMA(period). Band width = `k * populationStdDev` over the same window. Each array aligned to input length; positions before `period-1` are `null`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/indicators/bollinger.test.ts
@@ -407,12 +407,12 @@ describe("bollinger", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/indicators/bollinger.test.ts`
 Expected: FAIL — cannot resolve `bollinger.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/indicators/bollinger.ts
@@ -452,12 +452,12 @@ export function bollinger(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/indicators/bollinger.test.ts`
 Expected: PASS (1 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/indicators/bollinger.ts core/test/indicators/bollinger.test.ts
@@ -476,7 +476,7 @@ git commit -m "feat(core): add Bollinger Bands indicator"
 - Consumes: `ema` from Task 2 (`core/src/indicators/ema.ts`).
 - Produces: `macd(values: number[], fast = 12, slow = 26, signalPeriod = 9): { macd: (number|null)[]; signal: (number|null)[]; histogram: (number|null)[] }`. `macd[i] = emaFast[i] - emaSlow[i]` when both defined, else `null`. `signal` = EMA(`signalPeriod`) of the non-null macd values, mapped back onto their original indices. `histogram[i] = macd[i] - signal[i]`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/indicators/macd.test.ts
@@ -484,8 +484,12 @@ import { describe, it, expect } from "vitest";
 import { macd } from "../../src/indicators/macd.js";
 
 describe("macd", () => {
-  it("is positive on a steady uptrend", () => {
-    const closes = Array.from({ length: 40 }, (_, i) => i + 1); // 1..40
+  it("is positive on an accelerating uptrend", () => {
+    // Use a convex (accelerating) series, not a linear ramp: on a perfectly
+    // linear series MACD converges to a constant and the histogram converges
+    // to ~0 (failing a `> 0` assertion on floating-point noise). A convex
+    // series keeps MACD rising, so the histogram stays solidly positive.
+    const closes = Array.from({ length: 40 }, (_, i) => (i + 1) * (i + 1));
     const out = macd(closes, 12, 26, 9);
     const last = out.macd[out.macd.length - 1];
     const lastHist = out.histogram[out.histogram.length - 1];
@@ -496,7 +500,7 @@ describe("macd", () => {
   });
 
   it("leaves early indices null until slow EMA is defined", () => {
-    const closes = Array.from({ length: 40 }, (_, i) => i + 1);
+    const closes = Array.from({ length: 40 }, (_, i) => (i + 1) * (i + 1));
     const out = macd(closes, 12, 26, 9);
     expect(out.macd[24]).toBeNull(); // slow EMA seeds at index 25
     expect(out.macd[25]).not.toBeNull();
@@ -504,12 +508,12 @@ describe("macd", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/indicators/macd.test.ts`
 Expected: FAIL — cannot resolve `macd.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/indicators/macd.ts
@@ -562,12 +566,12 @@ export function macd(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/indicators/macd.test.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Create `core/src/indicators/index.ts`**
+- [x] **Step 5: Create `core/src/indicators/index.ts`**
 
 ```ts
 export { ema } from "./ema.js";
@@ -576,7 +580,7 @@ export { bollinger, type BollingerBands } from "./bollinger.js";
 export { macd, type MacdResult } from "./macd.js";
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add core/src/indicators/macd.ts core/test/indicators/macd.test.ts core/src/indicators/index.ts
@@ -609,7 +613,7 @@ git commit -m "feat(core): add MACD indicator and indicators barrel"
   - `netProfit = grossProfit - feesPaid`
   - `netProfitPct = netProfit / positionSize * 100`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/profit.test.ts
@@ -651,12 +655,12 @@ describe("calculateProfit", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/profit.test.ts`
 Expected: FAIL — cannot resolve `profit.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/profit.ts
@@ -691,12 +695,12 @@ export function calculateProfit(input: ProfitInput): ProfitResult {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/profit.test.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/profit.ts core/test/profit.test.ts
@@ -728,7 +732,7 @@ git commit -m "feat(core): add profit calculator"
   - `reasoning`: comma-joined plain-English fragments from the non-neutral indicators (see impl).
   - `asOf`: ISO string of the last candle's `closeTime`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // core/test/signal.test.ts
@@ -771,12 +775,12 @@ describe("generateSignal", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/signal.test.ts`
 Expected: FAIL — cannot resolve `signal.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/signal.ts
@@ -907,12 +911,12 @@ export function generateSignal(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/signal.test.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/signal.ts core/test/signal.test.ts
@@ -943,7 +947,7 @@ git commit -m "feat(core): add signal engine combining indicator votes"
   - On HTTP 429, retry after `Retry-After` header seconds (default 2s) up to `maxRetries` (default 3), then throw.
   - Non-2xx (other than handled 429) throws `Error` with status + body snippet.
 
-- [ ] **Step 1: Write the failing test (unit + skippable smoke)**
+- [x] **Step 1: Write the failing test (unit + skippable smoke)**
 
 ```ts
 // core/test/coinsClient.smoke.test.ts
@@ -995,12 +999,12 @@ describe.skipIf(process.env.RUN_SMOKE !== "1")("CoinsClient (live)", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd core && npx vitest run test/coinsClient.smoke.test.ts`
 Expected: FAIL — cannot resolve `coinsClient.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // core/src/coinsClient.ts
@@ -1079,12 +1083,12 @@ function sleep(ms: number): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd core && npx vitest run test/coinsClient.smoke.test.ts`
 Expected: PASS (2 mocked tests; live suite skipped).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add core/src/coinsClient.ts core/test/coinsClient.smoke.test.ts
@@ -1102,7 +1106,7 @@ git commit -m "feat(core): add Coins.ph public API client with 429 backoff"
 - Consumes: everything above.
 - Produces: the public package surface — indicators, `generateSignal`, `calculateProfit`, `CoinsClient`, and all shared types.
 
-- [ ] **Step 1: Create `core/src/index.ts`**
+- [x] **Step 1: Create `core/src/index.ts`**
 
 ```ts
 export * from "./types.js";
@@ -1113,17 +1117,17 @@ export { calculateProfit, type ProfitInput, type ProfitResult } from "./profit.j
 export { CoinsClient, type CoinsClientOptions } from "./coinsClient.js";
 ```
 
-- [ ] **Step 2: Run the whole test suite**
+- [x] **Step 2: Run the whole test suite**
 
 Run: `cd core && npm test`
 Expected: PASS — all test files green (indicators, signal, profit, coinsClient mocked).
 
-- [ ] **Step 3: Typecheck and build**
+- [x] **Step 3: Typecheck and build**
 
 Run: `cd core && npm run typecheck && npm run build`
 Expected: `tsc --noEmit` exits 0; `tsup` emits `dist/index.js` and `dist/index.d.ts`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add core/src/index.ts
