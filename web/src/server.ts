@@ -5,8 +5,9 @@ import express, {
   type NextFunction,
 } from "express";
 import type { AppConfig } from "./config.js";
-import type { SignalCache } from "./signalCache.js";
-import type { CoinsClient } from "@coins-trend-advisor/core";
+import type { KlineCache } from "./klineCache.js";
+import type { SignalService } from "./signalService.js";
+import type { ProviderRegistry } from "./providers.js";
 import { errorMiddleware } from "./errors.js";
 import { healthRoutes } from "./routes/health.js";
 import { profitRoutes } from "./routes/profit.js";
@@ -15,15 +16,15 @@ import { metaRoutes } from "./routes/watchlist.js";
 
 export interface AppDeps {
   config: AppConfig;
-  client: CoinsClient;
-  cache: SignalCache;
+  registry: ProviderRegistry;
+  cache: KlineCache;
+  signals: SignalService;
 }
 
 export function createApp(deps: AppDeps): Express {
   const app = express();
   app.use(express.json());
 
-  // Health is intentionally mounted before auth so liveness checks stay open.
   app.use("/api", healthRoutes());
 
   if (deps.config.apiToken) {
@@ -33,7 +34,6 @@ export function createApp(deps: AppDeps): Express {
   app.use("/api", profitRoutes());
   app.use("/api", signalRoutes(deps));
   app.use("/api", metaRoutes(deps));
-  // --- feature routers are mounted here by later tasks ---
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: { code: "not_found", message: "Not found" } });

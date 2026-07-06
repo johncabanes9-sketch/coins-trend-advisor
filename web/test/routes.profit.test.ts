@@ -2,14 +2,20 @@ import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { createApp } from "../src/server.js";
 import { loadConfig } from "../src/config.js";
-import { SignalCache } from "../src/signalCache.js";
-import { CoinsClient } from "@coins-trend-advisor/core";
+import { buildRegistry } from "../src/providers.js";
+import { KlineCache } from "../src/klineCache.js";
+import { SignalService } from "../src/signalService.js";
 
 function makeApp() {
   const config = loadConfig({});
-  const client = new CoinsClient({ baseUrl: config.coinsBaseUrl });
-  const cache = new SignalCache({ client, ttlMs: config.signalTtlMs, klineLimit: config.klineLimit });
-  return createApp({ config, client, cache });
+  const registry = buildRegistry(config);
+  const cache = new KlineCache({
+    resolveProvider: (ac) => registry.resolve(ac)!,
+    ttlMs: config.signalTtlMs,
+    klineLimit: config.klineLimit,
+  });
+  const signals = new SignalService({ cache });
+  return createApp({ config, registry, cache, signals });
 }
 
 describe("POST /api/profit", () => {
