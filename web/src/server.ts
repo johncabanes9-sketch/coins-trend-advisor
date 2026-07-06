@@ -4,6 +4,8 @@ import express, {
   type Response,
   type NextFunction,
 } from "express";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { AppConfig } from "./config.js";
 import type { KlineCache } from "./klineCache.js";
 import type { SignalService } from "./signalService.js";
@@ -42,6 +44,17 @@ export function createApp(deps: AppDeps): Express {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: { code: "not_found", message: "Not found" } });
   });
+
+  // Serve the built frontend when present. Absent (pure-API deploy) → skip.
+  const staticDir = deps.config.staticDir;
+  if (staticDir && existsSync(staticDir)) {
+    app.use(express.static(staticDir));
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) return next();
+      res.sendFile(join(staticDir, "index.html"));
+    });
+  }
+
   app.use(errorMiddleware);
   return app;
 }
