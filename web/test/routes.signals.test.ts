@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
+import { ForecastService } from "../src/forecastService.js";
 import type { AppConfig, WatchlistEntry } from "../src/config.js";
 import type { AssetClass, Kline, MarketDataProvider } from "@coins-trend-advisor/core";
 import { DISCLAIMER } from "@coins-trend-advisor/core";
@@ -54,6 +55,7 @@ function makeApp(opts: {
     cryptoInterval: opts.cryptoInterval ?? "1h",
     stockInterval: opts.stockInterval ?? "D",
     klineLimit: 200,
+    forecastHorizon: 5,
     apiToken: undefined,
   };
   const registry = {
@@ -65,7 +67,8 @@ function makeApp(opts: {
     klineLimit: config.klineLimit,
   });
   const signals = new SignalService({ cache });
-  return createApp({ config, registry, cache, signals });
+  const forecasts = new ForecastService({ cache });
+  return createApp({ config, registry, cache, signals, forecasts });
 }
 
 describe("signals routes", () => {
