@@ -146,4 +146,21 @@ describe("signals routes", () => {
     expect(res.body.assetClass).toBe("stock");
     expect(res.body.symbol).toBe("AAPL");
   });
+
+  it("relays stale/staleAsOf through the route after upstream fails post-warmup", async () => {
+    let fail = false;
+    const crypto = vi.fn(async () => {
+      if (fail) throw new Error("boom");
+      return candles(60);
+    });
+    const app = makeApp({ crypto, ttlMs: 0 });
+    const warm = await request(app).get("/api/signals/crypto/BTCPHP");
+    expect(warm.status).toBe(200);
+    expect(warm.body.stale).toBeUndefined();
+    fail = true;
+    const res = await request(app).get("/api/signals/crypto/BTCPHP");
+    expect(res.status).toBe(200);
+    expect(res.body.stale).toBe(true);
+    expect(typeof res.body.staleAsOf).toBe("string");
+  });
 });
