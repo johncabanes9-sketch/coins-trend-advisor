@@ -10,6 +10,7 @@ import type { CoinsClient } from "@coins-trend-advisor/core";
 import { errorMiddleware } from "./errors.js";
 import { healthRoutes } from "./routes/health.js";
 import { profitRoutes } from "./routes/profit.js";
+import { signalRoutes } from "./routes/signals.js";
 
 export interface AppDeps {
   config: AppConfig;
@@ -29,6 +30,7 @@ export function createApp(deps: AppDeps): Express {
   }
 
   app.use("/api", profitRoutes());
+  app.use("/api", signalRoutes(deps));
   // --- feature routers are mounted here by later tasks ---
 
   app.use("/api", (_req, res) => {
