@@ -39,12 +39,12 @@ function num(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
 }
 
 function parseWatchlist(raw: string | undefined): WatchlistEntry[] {
-  if (raw === undefined) return DEFAULT_WATCHLIST;
+  if (raw === undefined) return [...DEFAULT_WATCHLIST];
   const parts = raw
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  if (parts.length === 0) return DEFAULT_WATCHLIST;
+  if (parts.length === 0) return [...DEFAULT_WATCHLIST];
   return parts.map((entry) => {
     const idx = entry.indexOf(":");
     if (idx <= 0) {

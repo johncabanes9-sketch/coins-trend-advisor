@@ -46,4 +46,18 @@ describe("loadConfig", () => {
   it("throws on a non-numeric numeric env var", () => {
     expect(() => loadConfig({ SIGNAL_TTL_MS: "abc" })).toThrow();
   });
+
+  it("throws on a watchlist entry with an empty symbol", () => {
+    expect(() => loadConfig({ WATCHLIST: "crypto:" })).toThrow(/class:symbol/);
+  });
+
+  it("falls back to defaults on a blank watchlist", () => {
+    expect(loadConfig({ WATCHLIST: "  " }).watchlist).toEqual([
+      { assetClass: "crypto", symbol: "BTCPHP" },
+      { assetClass: "crypto", symbol: "ETHPHP" },
+      { assetClass: "crypto", symbol: "XRPPHP" },
+      { assetClass: "crypto", symbol: "SOLPHP" },
+      { assetClass: "crypto", symbol: "USDTPHP" },
+    ]);
+  });
 });
