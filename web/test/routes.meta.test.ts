@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
+import { ForecastService } from "../src/forecastService.js";
 import type { AppConfig, WatchlistEntry } from "../src/config.js";
 import type { AssetClass, MarketDataProvider } from "@coins-trend-advisor/core";
 
@@ -26,12 +27,13 @@ function makeApp(opts: { watchlist?: WatchlistEntry[]; symbols?: string[]; stock
       { assetClass: "crypto", symbol: "BTCPHP" },
       { assetClass: "stock", symbol: "AAPL" },
     ],
-    signalTtlMs: 1000, cryptoInterval: "1h", stockInterval: "D", klineLimit: 200, apiToken: undefined,
+    signalTtlMs: 1000, cryptoInterval: "1h", stockInterval: "D", klineLimit: 200, forecastHorizon: 5, apiToken: undefined,
   };
   const registry = { resolve: (ac: AssetClass) => (ac === "crypto" ? crypto : ac === "stock" ? stock : null) };
   const cache = new KlineCache({ resolveProvider: (ac) => registry.resolve(ac)!, ttlMs: 1000, klineLimit: 200 });
   const signals = new SignalService({ cache });
-  return { app: createApp({ config, registry, cache, signals }), listSymbols };
+  const forecasts = new ForecastService({ cache });
+  return { app: createApp({ config, registry, cache, signals, forecasts }), listSymbols };
 }
 
 describe("meta routes", () => {

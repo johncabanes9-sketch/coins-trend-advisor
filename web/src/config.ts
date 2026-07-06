@@ -15,6 +15,7 @@ export interface AppConfig {
   cryptoInterval: string;
   stockInterval: string;
   klineLimit: number;
+  forecastHorizon: number;
   apiToken?: string;
 }
 
@@ -73,6 +74,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     cryptoInterval: env.CRYPTO_INTERVAL ?? "1h",
     stockInterval: env.STOCK_INTERVAL ?? "D",
     klineLimit: num(env, "KLINE_LIMIT", 200),
+    forecastHorizon: num(env, "FORECAST_HORIZON", 5),
     apiToken: env.API_TOKEN || undefined,
   };
 }
