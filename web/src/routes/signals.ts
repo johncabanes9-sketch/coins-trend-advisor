@@ -1,6 +1,23 @@
 import { Router, type Request } from "express";
 import type { AppDeps } from "../server.js";
+import type { SignalResult } from "../signalCache.js";
 import { ApiError, asyncHandler } from "../errors.js";
+
+// Client-facing message for upstream failures. The real provider error (which
+// may embed the request path and a raw response-body snippet) is logged
+// server-side but never returned to API clients.
+const UPSTREAM_UNAVAILABLE_MESSAGE =
+  "Upstream market data provider is currently unavailable";
+
+function sanitizeResult(result: SignalResult, interval: string): SignalResult {
+  if (result.status === "error") {
+    console.error(
+      `upstream error for ${result.pair} @ ${interval}: ${result.message}`,
+    );
+    return { pair: result.pair, status: "error", message: UPSTREAM_UNAVAILABLE_MESSAGE };
+  }
+  return result;
+}
 
 function resolveInterval(deps: AppDeps, req: Request): string {
   const raw = req.query.interval;
@@ -26,7 +43,7 @@ export function signalRoutes(deps: AppDeps): Router {
     asyncHandler(async (req, res) => {
       const interval = resolveInterval(deps, req);
       const results = await deps.cache.getWatchlistSignals(deps.config.watchlist, interval);
-      res.json({ interval, results });
+      res.json({ interval, results: results.map((r) => sanitizeResult(r, interval)) });
     }),
   );
 
@@ -40,7 +57,8 @@ export function signalRoutes(deps: AppDeps): Router {
         throw new ApiError("insufficient_data", 422, `insufficient candle data for ${pair}`);
       }
       if (result.status === "error") {
-        throw new ApiError("upstream_unavailable", 502, result.message);
+        console.error(`upstream error for ${pair} @ ${interval}: ${result.message}`);
+        throw new ApiError("upstream_unavailable", 502, UPSTREAM_UNAVAILABLE_MESSAGE);
       }
       res.json(result);
     }),

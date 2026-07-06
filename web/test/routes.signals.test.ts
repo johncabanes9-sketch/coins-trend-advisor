@@ -51,6 +51,29 @@ describe("signals routes", () => {
     expect(res.body.results[0].signal.disclaimer).toBe(DISCLAIMER);
   });
 
+  it("GET /api/signals surfaces mixed per-pair statuses without failing the request", async () => {
+    const getKlines = vi.fn(async (pair: string) => {
+      if (pair === "OKPAIR") return candles(60);
+      if (pair === "SHORTPAIR") return candles(10);
+      throw new Error(
+        "Coins.ph 500 for /openapi/quote/v1/klines?symbol=ERRPAIR: secret upstream body",
+      );
+    });
+    const app = makeApp({ getKlines, watchlist: ["OKPAIR", "SHORTPAIR", "ERRPAIR"] });
+    const res = await request(app).get("/api/signals");
+    expect(res.status).toBe(200);
+    expect(res.body.results).toHaveLength(3);
+    const byPair = Object.fromEntries(
+      res.body.results.map((r: { pair: string }) => [r.pair, r]),
+    );
+    expect(byPair.OKPAIR.status).toBe("ok");
+    expect(byPair.SHORTPAIR.status).toBe("insufficient_data");
+    expect(byPair.ERRPAIR.status).toBe("error");
+    // Upstream error detail must not leak to clients in the list entry.
+    expect(byPair.ERRPAIR.message).not.toContain("secret upstream body");
+    expect(byPair.ERRPAIR.message).not.toContain("openapi");
+  });
+
   it("GET /api/signals/:pair returns a single ok signal", async () => {
     const res = await request(makeApp({ rows: candles(60) })).get("/api/signals/BTCPHP");
     expect(res.status).toBe(200);
@@ -70,6 +93,21 @@ describe("signals routes", () => {
     ).get("/api/signals/BTCPHP");
     expect(res.status).toBe(502);
     expect(res.body.error.code).toBe("upstream_unavailable");
+  });
+
+  it("does not leak upstream error detail in the 502 message", async () => {
+    const res = await request(
+      makeApp({
+        getKlines: vi.fn(async () => {
+          throw new Error(
+            "Coins.ph 500 for /openapi/quote/v1/klines?symbol=BTCPHP: secret upstream body",
+          );
+        }),
+      }),
+    ).get("/api/signals/BTCPHP");
+    expect(res.status).toBe(502);
+    expect(res.body.error.message).not.toContain("secret upstream body");
+    expect(res.body.error.message).not.toContain("openapi");
   });
 
   it("rejects an unsupported interval with 400", async () => {
