@@ -50,4 +50,26 @@ describe("ForecastService", () => {
     expect(r.stale).toBe(true);
     expect(r.staleAsOf).toBe("2020-01-01T00:00:00.000Z");
   });
+
+  it("getMany forecasts each entry over the shared cache", async () => {
+    const cache = {
+      getKlines: async () => ({ status: "ok", klines: ramp(60) }),
+      getMany: async (entries: { assetClass: string; symbol: string }[]) =>
+        entries.map(() => ({ status: "ok", klines: ramp(60) })),
+    } as unknown as KlineCache;
+    const svc = new ForecastService({ cache });
+    const out = await svc.getMany(
+      [
+        { assetClass: "crypto", symbol: "BTCPHP" },
+        { assetClass: "crypto", symbol: "ETHPHP" },
+      ],
+      "1h",
+      5,
+    );
+    expect(out).toHaveLength(2);
+    expect(out[0]!.status).toBe("ok");
+    expect(out[0]!.symbol).toBe("BTCPHP");
+    if (out[1]!.status !== "ok") throw new Error("expected ok");
+    expect(out[1]!.forecast.horizon).toBe(5);
+  });
 });

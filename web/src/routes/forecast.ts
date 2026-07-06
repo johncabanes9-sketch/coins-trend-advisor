@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { AppDeps } from "../server.js";
+import type { ForecastResult } from "../forecastService.js";
 import { ApiError, asyncHandler } from "../errors.js";
 import {
   UPSTREAM_UNAVAILABLE_MESSAGE,
@@ -19,8 +20,40 @@ function parseHorizon(raw: unknown, fallback: number): number {
   return n;
 }
 
+function sanitizeForecast(result: ForecastResult, interval: string): ForecastResult {
+  if (result.status === "error") {
+    console.error(
+      `upstream error for ${result.assetClass}:${result.symbol} @ ${interval}: ${result.message}`,
+    );
+    return {
+      assetClass: result.assetClass,
+      symbol: result.symbol,
+      status: "error",
+      message: UPSTREAM_UNAVAILABLE_MESSAGE,
+    };
+  }
+  return result;
+}
+
 export function forecastRoutes(deps: AppDeps): Router {
   const r = Router();
+
+  r.get(
+    "/forecast/:assetClass",
+    asyncHandler(async (req, res) => {
+      const assetClass = parseAssetClass(req.params.assetClass);
+      const interval = resolveInterval(deps, assetClass, req);
+      const horizon = parseHorizon(req.query.horizon, deps.config.forecastHorizon);
+      const entries = deps.config.watchlist.filter((e) => e.assetClass === assetClass);
+      const results = await deps.forecasts.getMany(entries, interval, horizon);
+      res.json({
+        assetClass,
+        interval,
+        horizon,
+        results: results.map((x) => sanitizeForecast(x, interval)),
+      });
+    }),
+  );
 
   r.get(
     "/forecast/:assetClass/:symbol",
