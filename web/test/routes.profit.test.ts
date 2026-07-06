@@ -37,4 +37,13 @@ describe("POST /api/profit", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("invalid_input");
   });
+
+  it("returns 400 invalid_json for a malformed JSON body", async () => {
+    const res = await request(makeApp())
+      .post("/api/profit")
+      .set("Content-Type", "application/json")
+      .send("{ not valid json ");
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("invalid_json");
+  });
 });
