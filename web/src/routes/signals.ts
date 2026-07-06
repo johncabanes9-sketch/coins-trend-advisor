@@ -34,7 +34,7 @@ export function signalRoutes(deps: AppDeps): Router {
     "/signals/:pair",
     asyncHandler(async (req, res) => {
       const interval = resolveInterval(deps, req);
-      const pair = req.params.pair;
+      const pair = req.params.pair!;
       const result = await deps.cache.getSignal(pair, interval);
       if (result.status === "insufficient_data") {
         throw new ApiError("insufficient_data", 422, `insufficient candle data for ${pair}`);
