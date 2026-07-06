@@ -33,3 +33,15 @@ export interface Signal {
 
 export const DISCLAIMER =
   "Technical-indicator-based estimate, not a guarantee of outcome.";
+
+export type AssetClass = "crypto" | "stock";
+
+/** Uniform read surface over a market-data source (crypto exchange, stock API). */
+export interface MarketDataProvider {
+  readonly assetClass: AssetClass;
+  readonly allowedIntervals: string[];
+  readonly defaultInterval: string;
+  getKlines(symbol: string, interval: string, limit?: number): Promise<Kline[]>;
+  getPrice(symbol: string): Promise<number>;
+  listSymbols(): Promise<string[]>;
+}

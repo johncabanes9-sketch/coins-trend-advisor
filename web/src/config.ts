@@ -1,16 +1,32 @@
+import type { AssetClass } from "@coins-trend-advisor/core";
+
+export interface WatchlistEntry {
+  assetClass: AssetClass;
+  symbol: string;
+}
+
 export interface AppConfig {
   port: number;
   coinsBaseUrl: string;
-  watchlist: string[];
+  finnhubApiKey?: string;
+  finnhubBaseUrl: string;
+  watchlist: WatchlistEntry[];
   signalTtlMs: number;
-  klineInterval: string;
+  cryptoInterval: string;
+  stockInterval: string;
   klineLimit: number;
   apiToken?: string;
-  allowedIntervals: string[];
 }
 
-const DEFAULT_WATCHLIST = ["BTCPHP", "ETHPHP", "XRPPHP", "SOLPHP", "USDTPHP"];
-const ALLOWED_INTERVALS = ["1h", "4h"];
+const DEFAULT_WATCHLIST: WatchlistEntry[] = [
+  { assetClass: "crypto", symbol: "BTCPHP" },
+  { assetClass: "crypto", symbol: "ETHPHP" },
+  { assetClass: "crypto", symbol: "XRPPHP" },
+  { assetClass: "crypto", symbol: "SOLPHP" },
+  { assetClass: "crypto", symbol: "USDTPHP" },
+];
+
+const ASSET_CLASSES: AssetClass[] = ["crypto", "stock"];
 
 function num(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
   const raw = env[key];
@@ -22,22 +38,41 @@ function num(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
   return n;
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsedWatchlist = env.WATCHLIST?.split(",")
+function parseWatchlist(raw: string | undefined): WatchlistEntry[] {
+  if (raw === undefined) return [...DEFAULT_WATCHLIST];
+  const parts = raw
+    .split(",")
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
+  if (parts.length === 0) return [...DEFAULT_WATCHLIST];
+  return parts.map((entry) => {
+    const idx = entry.indexOf(":");
+    if (idx <= 0) {
+      throw new Error(`config: WATCHLIST entry "${entry}" must be class:symbol`);
+    }
+    const assetClass = entry.slice(0, idx).trim();
+    const symbol = entry.slice(idx + 1).trim();
+    if (!ASSET_CLASSES.includes(assetClass as AssetClass)) {
+      throw new Error(`config: WATCHLIST entry "${entry}" has unknown asset class`);
+    }
+    if (symbol.length === 0) {
+      throw new Error(`config: WATCHLIST entry "${entry}" must be class:symbol`);
+    }
+    return { assetClass: assetClass as AssetClass, symbol };
+  });
+}
 
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     port: num(env, "PORT", 3001),
     coinsBaseUrl: env.COINS_BASE_URL ?? "https://api.pro.coins.ph",
-    watchlist:
-      parsedWatchlist && parsedWatchlist.length > 0
-        ? parsedWatchlist
-        : DEFAULT_WATCHLIST,
+    finnhubApiKey: env.FINNHUB_API_KEY || undefined,
+    finnhubBaseUrl: env.FINNHUB_BASE_URL ?? "https://finnhub.io/api/v1",
+    watchlist: parseWatchlist(env.WATCHLIST),
     signalTtlMs: num(env, "SIGNAL_TTL_MS", 300000),
-    klineInterval: env.KLINE_INTERVAL ?? "1h",
+    cryptoInterval: env.CRYPTO_INTERVAL ?? "1h",
+    stockInterval: env.STOCK_INTERVAL ?? "D",
     klineLimit: num(env, "KLINE_LIMIT", 200),
     apiToken: env.API_TOKEN || undefined,
-    allowedIntervals: ALLOWED_INTERVALS,
   };
 }

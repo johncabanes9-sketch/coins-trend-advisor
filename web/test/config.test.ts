@@ -6,28 +6,58 @@ describe("loadConfig", () => {
     const c = loadConfig({});
     expect(c.port).toBe(3001);
     expect(c.coinsBaseUrl).toBe("https://api.pro.coins.ph");
+    expect(c.finnhubBaseUrl).toBe("https://finnhub.io/api/v1");
+    expect(c.finnhubApiKey).toBeUndefined();
     expect(c.signalTtlMs).toBe(300000);
-    expect(c.klineInterval).toBe("1h");
+    expect(c.cryptoInterval).toBe("1h");
+    expect(c.stockInterval).toBe("D");
     expect(c.klineLimit).toBe(200);
-    expect(c.watchlist).toEqual(["BTCPHP", "ETHPHP", "XRPPHP", "SOLPHP", "USDTPHP"]);
-    expect(c.allowedIntervals).toEqual(["1h", "4h"]);
+    expect(c.watchlist).toEqual([
+      { assetClass: "crypto", symbol: "BTCPHP" },
+      { assetClass: "crypto", symbol: "ETHPHP" },
+      { assetClass: "crypto", symbol: "XRPPHP" },
+      { assetClass: "crypto", symbol: "SOLPHP" },
+      { assetClass: "crypto", symbol: "USDTPHP" },
+    ]);
     expect(c.apiToken).toBeUndefined();
   });
 
-  it("parses provided values and a custom watchlist", () => {
+  it("parses a class-tagged watchlist and finnhub key", () => {
     const c = loadConfig({
-      PORT: "4000",
-      SIGNAL_TTL_MS: "1000",
-      WATCHLIST: "BTCPHP, ETHPHP ,",
-      API_TOKEN: "secret",
+      WATCHLIST: "crypto:BTCPHP, stock:AAPL ,stock:MSFT",
+      FINNHUB_API_KEY: "fk",
     });
-    expect(c.port).toBe(4000);
-    expect(c.signalTtlMs).toBe(1000);
-    expect(c.watchlist).toEqual(["BTCPHP", "ETHPHP"]);
-    expect(c.apiToken).toBe("secret");
+    expect(c.watchlist).toEqual([
+      { assetClass: "crypto", symbol: "BTCPHP" },
+      { assetClass: "stock", symbol: "AAPL" },
+      { assetClass: "stock", symbol: "MSFT" },
+    ]);
+    expect(c.finnhubApiKey).toBe("fk");
+  });
+
+  it("throws on a watchlist entry with no class prefix", () => {
+    expect(() => loadConfig({ WATCHLIST: "BTCPHP" })).toThrow(/class:symbol/);
+  });
+
+  it("throws on an unknown asset class", () => {
+    expect(() => loadConfig({ WATCHLIST: "forex:EURUSD" })).toThrow(/asset class/);
   });
 
   it("throws on a non-numeric numeric env var", () => {
     expect(() => loadConfig({ SIGNAL_TTL_MS: "abc" })).toThrow();
+  });
+
+  it("throws on a watchlist entry with an empty symbol", () => {
+    expect(() => loadConfig({ WATCHLIST: "crypto:" })).toThrow(/class:symbol/);
+  });
+
+  it("falls back to defaults on a blank watchlist", () => {
+    expect(loadConfig({ WATCHLIST: "  " }).watchlist).toEqual([
+      { assetClass: "crypto", symbol: "BTCPHP" },
+      { assetClass: "crypto", symbol: "ETHPHP" },
+      { assetClass: "crypto", symbol: "XRPPHP" },
+      { assetClass: "crypto", symbol: "SOLPHP" },
+      { assetClass: "crypto", symbol: "USDTPHP" },
+    ]);
   });
 });
