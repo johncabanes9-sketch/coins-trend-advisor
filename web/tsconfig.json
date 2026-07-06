@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": { "@coins-trend-advisor/core": ["../core/src/index.ts"] },
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src", "test"]
+}
