@@ -62,6 +62,11 @@ export function forecast(
   }
 
   const predicted = best.level + horizon * best.trend;
+  // Approximate ~80% band: scale the one-step error std as sigma_1 * sqrt(h)
+  // (random-walk accumulation). This is a heuristic, not Holt's exact
+  // prediction interval, and is mildly optimistic — `variance` is the minimized
+  // in-sample SSE with no degrees-of-freedom correction for the fitted params.
+  // Acceptable given the DISCLAIMER: a forecast is an estimate, never a promise.
   const variance = best.count > 0 ? best.sse / best.count : 0;
   const band = Z_80 * Math.sqrt(variance) * Math.sqrt(horizon);
   const asOf = new Date(candles[candles.length - 1]!.closeTime).toISOString();

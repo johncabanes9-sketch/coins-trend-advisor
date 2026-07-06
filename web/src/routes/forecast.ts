@@ -37,7 +37,8 @@ export function forecastRoutes(deps: AppDeps): Router {
         console.error(`upstream error for ${assetClass}:${symbol} @ ${interval}: ${result.message}`);
         throw new ApiError("upstream_unavailable", 502, UPSTREAM_UNAVAILABLE_MESSAGE);
       }
-      res.json(result);
+      // Echo the resolved interval so `horizon` (a step count) is interpretable.
+      res.json({ ...result, interval });
     }),
   );
 

@@ -47,6 +47,7 @@ describe("forecast route", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
     expect(res.body.symbol).toBe("BTCPHP");
+    expect(res.body.interval).toBe("1h");
     expect(res.body.forecast.method).toBe("holt-linear");
     expect(res.body.forecast.horizon).toBe(5);
     expect(res.body.forecast.disclaimer).toBe(DISCLAIMER);
