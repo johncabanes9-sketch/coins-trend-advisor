@@ -60,6 +60,17 @@ export class FinnhubProvider implements MarketDataProvider {
     const l = body.l ?? [];
     const c = body.c ?? [];
     const v = body.v ?? [];
+    // Finnhub returns parallel arrays; a length mismatch would silently produce
+    // NaN candles that flow into the signal engine. Fail honestly instead.
+    if (
+      o.length < t.length ||
+      h.length < t.length ||
+      l.length < t.length ||
+      c.length < t.length ||
+      v.length < t.length
+    ) {
+      throw new Error("Finnhub: malformed candle response (array length mismatch)");
+    }
     const resMs = resSeconds * 1000;
     const rows: Kline[] = t.map((sec, i) => {
       const openTime = sec * 1000;

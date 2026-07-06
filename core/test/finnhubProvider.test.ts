@@ -57,6 +57,21 @@ describe("FinnhubProvider", () => {
     expect(await p.getKlines("AAPL", "D")).toEqual([]);
   });
 
+  it("rejects a malformed ok response whose price arrays are shorter than t", async () => {
+    const body = {
+      s: "ok",
+      t: [1000, 2000, 3000],
+      o: [10, 11, 12],
+      h: [11, 12, 13],
+      l: [9, 10, 11],
+      c: [10.5, 11.5], // one short — would otherwise yield a NaN candle
+      v: [100, 200, 300],
+    };
+    const fetchImpl = vi.fn(async () => jsonResponse(body));
+    const p = new FinnhubProvider({ apiKey: "k", fetchImpl: fetchImpl as unknown as typeof fetch });
+    await expect(p.getKlines("AAPL", "D")).rejects.toThrow(/malformed|mismatch/i);
+  });
+
   it("throws with a sanitized message on a non-ok HTTP response", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ error: "bad" }, false, 401));
     const p = new FinnhubProvider({ apiKey: "k", fetchImpl: fetchImpl as unknown as typeof fetch });

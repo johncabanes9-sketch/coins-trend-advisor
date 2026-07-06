@@ -21,9 +21,11 @@ function resolveInterval(deps: AppDeps, assetClass: AssetClass, req: Request): s
   if (!provider) {
     throw new ApiError("stocks_disabled", 503, "Stock data is not configured");
   }
+  const configDefault =
+    assetClass === "stock" ? deps.config.stockInterval : deps.config.cryptoInterval;
   const raw = req.query.interval;
   const interval =
-    raw === undefined ? provider.defaultInterval : typeof raw === "string" ? raw : "";
+    raw === undefined ? configDefault : typeof raw === "string" ? raw : "";
   if (!provider.allowedIntervals.includes(interval)) {
     throw new ApiError(
       "invalid_interval",

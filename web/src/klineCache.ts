@@ -14,7 +14,12 @@ export interface KlineCacheDeps {
   ttlMs: number;
   klineLimit: number;
   now?: () => number;
+  /** Cap on distinct cached keys before oldest are evicted. Bounds memory when
+   * the single-symbol route is hit with arbitrary symbols. Default 1000. */
+  maxEntries?: number;
 }
+
+const DEFAULT_MAX_ENTRIES = 1000;
 
 export class KlineCache {
   private readonly entries = new Map<string, Entry>();
@@ -24,6 +29,16 @@ export class KlineCache {
 
   private clock(): number {
     return (this.deps.now ?? Date.now)();
+  }
+
+  /** Evict oldest entries (insertion order) once the cap is exceeded. */
+  private evictOverflow(): void {
+    const max = this.deps.maxEntries ?? DEFAULT_MAX_ENTRIES;
+    while (this.entries.size > max) {
+      const oldest = this.entries.keys().next().value;
+      if (oldest === undefined) break;
+      this.entries.delete(oldest);
+    }
   }
 
   async getKlines(
@@ -66,6 +81,7 @@ export class KlineCache {
       const provider = this.deps.resolveProvider(assetClass);
       const klines = await provider.getKlines(symbol, interval, this.deps.klineLimit);
       this.entries.set(key, { klines, computedAt: this.clock() });
+      this.evictOverflow();
       return { status: "ok", klines };
     } catch (err) {
       const stale = this.entries.get(key);

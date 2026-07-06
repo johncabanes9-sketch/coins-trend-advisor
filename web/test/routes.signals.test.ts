@@ -33,6 +33,8 @@ function makeApp(opts: {
   stock?: MarketDataProvider["getKlines"] | null; // null => stocks disabled
   watchlist?: WatchlistEntry[];
   ttlMs?: number;
+  cryptoInterval?: string;
+  stockInterval?: string;
 }) {
   const crypto = cryptoProvider(opts.crypto ?? (async () => candles(60)));
   const stock =
@@ -49,8 +51,8 @@ function makeApp(opts: {
       { assetClass: "crypto", symbol: "ETHPHP" },
     ],
     signalTtlMs: opts.ttlMs ?? 1000,
-    cryptoInterval: "1h",
-    stockInterval: "D",
+    cryptoInterval: opts.cryptoInterval ?? "1h",
+    stockInterval: opts.stockInterval ?? "D",
     klineLimit: 200,
     apiToken: undefined,
   };
@@ -145,6 +147,12 @@ describe("signals routes", () => {
     expect(res.status).toBe(200);
     expect(res.body.assetClass).toBe("stock");
     expect(res.body.symbol).toBe("AAPL");
+  });
+
+  it("uses the configured per-class default interval when none is supplied", async () => {
+    const res = await request(makeApp({ cryptoInterval: "4h" })).get("/api/signals/crypto");
+    expect(res.status).toBe(200);
+    expect(res.body.interval).toBe("4h");
   });
 
   it("relays stale/staleAsOf through the route after upstream fails post-warmup", async () => {

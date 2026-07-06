@@ -109,6 +109,23 @@ describe("KlineCache", () => {
     expect(typeof r.staleAsOf).toBe("string");
   });
 
+  it("evicts the oldest entry once maxEntries is exceeded", async () => {
+    const getKlines = vi.fn(async () => candles(60));
+    const provider = providerFrom(getKlines);
+    const cache = new KlineCache({
+      resolveProvider: () => provider,
+      ttlMs: 1_000_000, // large TTL so eviction, not staleness, is what forces a refetch
+      klineLimit: 200,
+      maxEntries: 2,
+    });
+    await cache.getKlines("crypto", "AAA", "1h");
+    await cache.getKlines("crypto", "BBB", "1h");
+    await cache.getKlines("crypto", "CCC", "1h"); // evicts AAA (oldest)
+    expect(getKlines).toHaveBeenCalledTimes(3);
+    await cache.getKlines("crypto", "AAA", "1h"); // must refetch — was evicted
+    expect(getKlines).toHaveBeenCalledTimes(4);
+  });
+
   it("getMany resolves each entry independently", async () => {
     const getKlines = vi.fn(async (symbol: string) => {
       if (symbol === "ERR") throw new Error("boom");
