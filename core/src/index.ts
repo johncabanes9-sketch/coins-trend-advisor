@@ -5,3 +5,4 @@ export { generateSignal } from "./signal.js";
 export { calculateProfit, type ProfitInput, type ProfitResult } from "./profit.js";
 export { CoinsClient, type CoinsClientOptions } from "./coinsClient.js";
 export { CoinsProvider } from "./providers/coinsProvider.js";
+export { FinnhubProvider, type FinnhubProviderOptions } from "./providers/finnhubProvider.js";
