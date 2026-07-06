@@ -122,4 +122,14 @@ describe("KlineCache", () => {
     expect(out[0]!.status).toBe("ok");
     expect(out[1]!.status).toBe("error");
   });
+
+  it("stringifies a non-Error throw into the error message", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+    const getKlines = vi.fn(async () => { throw "kaboom"; });
+    const cache = cacheWith(getKlines);
+    const r = await cache.getKlines("crypto", "BTCPHP", "1h");
+    expect(r.status).toBe("error");
+    if (r.status !== "error") throw new Error("expected error");
+    expect(r.message).toBe("kaboom");
+  });
 });

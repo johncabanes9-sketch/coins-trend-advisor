@@ -77,7 +77,10 @@ export class KlineCache {
           staleAsOf: new Date(stale.computedAt).toISOString(),
         };
       }
-      return { status: "error", message: (err as Error).message };
+      return {
+        status: "error",
+        message: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 }
