@@ -12,6 +12,7 @@ describe("loadConfig", () => {
     expect(c.cryptoInterval).toBe("1h");
     expect(c.stockInterval).toBe("D");
     expect(c.klineLimit).toBe(200);
+    expect(c.forecastHorizon).toBe(5);
     expect(c.watchlist).toEqual([
       { assetClass: "crypto", symbol: "BTCPHP" },
       { assetClass: "crypto", symbol: "ETHPHP" },
@@ -20,6 +21,10 @@ describe("loadConfig", () => {
       { assetClass: "crypto", symbol: "USDTPHP" },
     ]);
     expect(c.apiToken).toBeUndefined();
+  });
+
+  it("parses a custom forecast horizon", () => {
+    expect(loadConfig({ FORECAST_HORIZON: "10" }).forecastHorizon).toBe(10);
   });
 
   it("parses a class-tagged watchlist and finnhub key", () => {
