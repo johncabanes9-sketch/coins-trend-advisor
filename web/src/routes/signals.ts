@@ -4,7 +4,10 @@ import { ApiError, asyncHandler } from "../errors.js";
 
 function resolveInterval(deps: AppDeps, req: Request): string {
   const raw = req.query.interval;
-  const interval = typeof raw === "string" ? raw : deps.config.klineInterval;
+  // Absent -> default. Present but not a plain string (e.g. duplicate query
+  // params parsed as an array) is malformed input, not the default.
+  const interval =
+    raw === undefined ? deps.config.klineInterval : typeof raw === "string" ? raw : "";
   if (!deps.config.allowedIntervals.includes(interval)) {
     throw new ApiError(
       "invalid_interval",

@@ -78,6 +78,14 @@ describe("signals routes", () => {
     expect(res.body.error.code).toBe("invalid_interval");
   });
 
+  it("rejects duplicate/array interval params with 400", async () => {
+    const res = await request(makeApp({ rows: candles(60) })).get(
+      "/api/signals/BTCPHP?interval=1h&interval=2h",
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("invalid_interval");
+  });
+
   it("serves a stale signal after upstream fails post-warmup", async () => {
     const rows = candles(60);
     let fail = false;
