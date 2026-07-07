@@ -70,4 +70,29 @@ describe("buildSnapshot", () => {
     expect(res.momentum).toBe("neutral");
     expect(res.trendMomentumAgree).toBe(false);
   });
+
+  it("produces a snapshot at exactly the 200-candle floor", () => {
+    // 200 is the floor (buildSnapshot rejects < 200), so exactly 200 must yield
+    // a snapshot with a finite EMA200 (seeded at the last index).
+    const res = buildSnapshot("BTCPHP", "crypto", uptrend(200));
+    if ("status" in res) throw new Error("expected a snapshot at exactly 200 candles");
+    expect(res.candleCount).toBe(200);
+    expect(Number.isFinite(res.ema200)).toBe(true);
+  });
+
+  it("flags divergence when price makes a new high but RSI fails to confirm", () => {
+    // Phase 1 (0..199): a pure monotonic rise pins RSI to 100 at the window
+    // start (candle 200). Phase 2 introduces small losses so RSI at the last
+    // candle drops below that, while the final candle still prints the window's
+    // highest close — textbook bearish divergence.
+    const closes: number[] = [];
+    for (let i = 0; i < 200; i++) closes.push(100 + i); // monotonic -> RSI 100 at winStart
+    closes.push(400); // candle 200 (window start): jump up
+    for (let i = 201; i < 219; i++) closes.push(400 - (i - 200) * 0.1); // slight decline -> losses
+    closes.push(400.5); // candle 219: marginal new window high, RSI now below winStart
+    const candles = closes.map((c, i) => k(c, i * 1000, c + 1, c - 1));
+    const res = buildSnapshot("BTCPHP", "crypto", candles);
+    if ("status" in res) throw new Error("expected a snapshot");
+    expect(res.divergence).toBe(true);
+  });
 });
