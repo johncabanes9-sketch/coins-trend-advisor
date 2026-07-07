@@ -49,4 +49,5 @@ it("wires the token field into the api client", async () => {
 it("renders the Swing analysis section", async () => {
   render(<App />);
   expect(await screen.findByText(/swing analysis/i)).toBeInTheDocument();
+  await settle();
 });
