@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AssetClass, SignalItem, ForecastItem } from "../types.js";
 import { getSignal, getForecast, getPairs } from "../api.js";
 import { SignalForecastCard } from "./SignalForecastCard.js";
+import { ProfitCalculator } from "./ProfitCalculator.js";
 
 export function Lookup({
   assetClass,
@@ -55,7 +56,15 @@ export function Lookup({
       </form>
       {loading && <p className="muted">Looking up…</p>}
       {error && <p className="note error">{error}</p>}
-      {result && <SignalForecastCard symbol={result.symbol} signal={result.signal} forecast={result.forecast} />}
+      {result && (
+        <>
+          <SignalForecastCard symbol={result.symbol} signal={result.signal} forecast={result.forecast} />
+          <ProfitCalculator
+            symbol={result.symbol}
+            targetPrice={result.forecast?.forecast?.predicted}
+          />
+        </>
+      )}
     </section>
   );
 }
