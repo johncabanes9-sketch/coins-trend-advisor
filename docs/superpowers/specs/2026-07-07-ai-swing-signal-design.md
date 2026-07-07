@@ -1,7 +1,7 @@
-# AI-Assisted Swing Signal — Design
+# Swing Signal Analyzer — Design (deterministic, free)
 
 Date: 2026-07-07
-Status: Approved (backend-only v1)
+Status: Approved (backend-only v1, fully deterministic — no LLM/paid API)
 
 ## Problem
 
@@ -14,28 +14,23 @@ data plus caller-supplied account state and returns a structured signal
 momentum-confirmed strategy.
 
 This is an **analysis** tool. It never places trades, never uses leverage, and
-its risk limits are enforced in code and cannot be overridden by prompt input.
+its risk limits are enforced in code and cannot be overridden by input.
 
-## Core principle: LLM judges inside a code-controlled envelope
+## Free & deterministic
 
-The deterministic layer computes every number and enforces every hard rule. The
-LLM decides only direction, confidence, reasoning, and risk flags — and it can
-only narrow toward HOLD, never turn a code-forced HOLD into a trade. Position
-sizing, stop distances, and the loss/risk caps never depend on the model.
+Everything runs in plain code — no language model, no external paid API, no API
+keys. Market data comes from the Coins.ph public API already in use. Cost to run:
+zero. The decision, confidence score, and reasoning text are all computed from
+the indicator snapshot by pure, testable functions.
 
 Decision flow:
 
 ```
 OHLCV klines ──► [core/analysis: EMA/RSI/MACD/ATR, trend structure,
                   momentum agreement, volatility regime] ──► Snapshot
-Snapshot + account state ──► [core/risk: hard gates + sizing math]
-   │
-   ├─ gate fires (insufficient data | loss-limit | market closed |
-   │             trend/momentum conflict) ──► HOLD (no LLM call)
-   │
-   └─ trade permitted ──► [LLM: action/confidence/reasoning/flags]
-                          ──► [code: fill entry/stop/TP/size, clamp to
-                               risk caps, apply divergence penalty] ──► JSON
+Snapshot + account state ──► [core/decision + core/risk:
+                              hard gates, direction, confidence,
+                              reasoning, sizing math] ──► strict JSON
 ```
 
 ## Components
@@ -81,8 +76,7 @@ export interface SwingSnapshot {
 
 ### core/src/risk.ts (pure, deterministic)
 
-Turns a snapshot + account state + a proposed direction into risk outputs and
-hard gates.
+Account state, hard gates, and sizing math.
 
 ```ts
 export interface AccountState {
@@ -122,47 +116,60 @@ export interface RiskOutputs {
     `weekly_loss_limit`.
   - stock + `marketStatus !== "open"` → `market_closed`.
   - `!trendMomentumAgree` → `trend_momentum_conflict`.
-  - direction would increase an existing position already at a loss →
+  - direction would increase an existing position already at a loss (position
+    same side as `direction`, and `lastClose` worse than `entryPrice`) →
     `adding_to_loser`.
 - `computeRisk(snapshot, account, assetClass, direction, config)`:
   - buffer = crypto ? `max(atrBufferCrypto, 2)` : `atrBufferStock`.
   - stopDistance = `atr14 * buffer`.
   - stop = entry ∓ stopDistance (below entry for BUY, above for SELL).
   - takeProfit = entry ± `stopDistance * rewardRisk` (mirrored by direction).
-  - rawSizePct = `min(riskPct, 1)`; size in equity terms =
-    `equity * rawSizePct/100 / stopDistance` units, expressed back as
-    `positionSizePct` of equity; crypto multiplies by `cryptoSizeFactor`;
+  - rawSizePct = `min(riskPct, 1)`; crypto multiplies by `cryptoSizeFactor`;
     `volatilitySpike` multiplies by `volatilitySizeFactor`.
   - `positionSizePct` clamped so per-trade risk never exceeds `riskPct` (and
     never exceeds 1%).
 
-### web/src/llm/analyzer.ts (LLM judgment)
+### core/src/decision.ts (pure, deterministic — replaces the LLM)
 
-- Thin wrapper over the Anthropic SDK (`@anthropic-ai/sdk`), model
-  `claude-sonnet-5`. Exact params (max_tokens, temperature, system prompt,
-  tool/JSON-mode) confirmed against the `claude-api` reference skill during
-  planning.
-- Input: the `SwingSnapshot` (never raw OHLCV) + asset class + the allowed
-  directions. Output parsed to `{ action, confidence, reasoning, risk_flags }`.
-- The client is injected (interface) so tests use a fake — no network in tests.
-- Robust parse: if the model returns malformed JSON or an out-of-envelope action
-  (e.g. BUY when only HOLD/SELL is permitted), the service falls back to HOLD
-  with a `risk_flags` note. The model cannot widen the decision.
+`decide(snapshot, account, assetClass, config): SwingSignal` — the whole call:
 
-### web/src/analyzeService.ts (orchestration)
+- **Direction candidate** from `structure`: uptrend → BUY, downtrend → SELL,
+  sideways → HOLD.
+- **Gates:** run `evaluateGates`. If blocked (or direction is HOLD) → HOLD,
+  confidence 0, price fields null, size 0, `reasoning` naming the block, and the
+  gate reason pushed to `risk_flags`.
+- **Confidence (0–100), additive then clamped:**
+  - base 60 for a gated-through trend+momentum-agreed signal.
+  - `priceVsEma` fully aligned with direction (above_both for BUY / below_both
+    for SELL): +15.
+  - momentum strength: `+min(15, round(abs(rsi-50)/2))`.
+  - secondary context (Bollinger from existing indicators): entry on a pullback
+    toward the mid/opposite band in the trend direction +10; stretched to the
+    far band (chasing) −10; else 0.
+  - `divergence`: −20 (satisfies "reduce by at least 20").
+  - `volatilitySpike`: −10.
+  - clamp to [0, 100].
+- **Reasoning:** a templated 2–3 sentence string built from snapshot facts, e.g.
+  `"Uptrend confirmed: price above EMA50/EMA200 with RSI 61 and a positive MACD
+  histogram. Momentum agrees with trend. ATR spike flagged — position size
+  halved."` No free text beyond the template slots.
+- **risk_flags:** `"divergence risk"`, `"high volatility regime"`,
+  `"market closed"`, `"daily loss limit hit"`, `"weekly loss limit hit"`,
+  `"adding to losing position blocked"`, `"insufficient data"` — included when
+  the corresponding condition holds.
+- On a permitted trade, fills `entry/stop/take_profit/position_size_pct` from
+  `computeRisk`.
+
+`SwingSignal` is the strict JSON shape below.
+
+### web/src/analyzeService.ts (orchestration, thin)
 
 `analyze(assetClass, symbol, interval, account, config)`:
 1. Fetch klines via the existing `KlineCache`.
-2. Build snapshot (`analysis.ts`). If klines errored/insufficient → HOLD,
-   confidence 0, `risk_flags: ["insufficient_data"]`, stating what's missing.
-3. Determine the candidate direction from `structure` (uptrend→BUY,
-   downtrend→SELL). Run `evaluateGates`. If blocked → HOLD, confidence 0, the
-   gate reason in `risk_flags`, no LLM call.
-4. Otherwise call the LLM for judgment; assemble the final JSON with
-   `computeRisk` outputs. If `divergence`, subtract ≥20 from confidence and add
-   `"divergence risk"`. If `volatilitySpike`, add `"high volatility regime"`
-   (size is already halved by `computeRisk` via `volatilitySizeFactor`).
-5. Return the strict JSON schema below.
+2. If klines errored/insufficient → HOLD, confidence 0,
+   `risk_flags: ["insufficient data"]`, reasoning states what's missing.
+3. Build snapshot (`analysis.ts`), call `decide(...)` (`decision.ts`), return the
+   result. No network beyond the market-data fetch.
 
 ### web/src/routes/analyze.ts
 
@@ -175,15 +182,15 @@ export interface RiskOutputs {
   "marketStatus": "open" }
 ```
 - Validates every field is present and finite (reuse the `ApiError` pattern from
-  `routes/profit.ts`).
-- If `ANTHROPIC_API_KEY` is unset → `ApiError("analyzer_disabled", 503, ...)`,
-  mirroring how stocks degrade when unconfigured.
+  `routes/profit.ts`); `position` may be `null`; `marketStatus` optional
+  (required-open only affects stocks).
+- No API key, no external service — always available.
 
 ### Config (web/src/config.ts)
 
-Add: `anthropicApiKey` (from `ANTHROPIC_API_KEY`), and `RiskConfig` defaults
-(riskPct 0.75, rewardRisk 2, atrBufferStock 1.75, atrBufferCrypto 2.0,
-cryptoSizeFactor 0.5, volatilitySizeFactor 0.5), overridable via env.
+Add `RiskConfig` defaults (riskPct 0.75, rewardRisk 2, atrBufferStock 1.75,
+atrBufferCrypto 2.0, cryptoSizeFactor 0.5, volatilitySizeFactor 0.5),
+overridable via env. No API-key config.
 
 ## Output schema (strict JSON)
 
@@ -201,29 +208,31 @@ cryptoSizeFactor 0.5, volatilitySizeFactor 0.5), overridable via env.
 ```
 On any HOLD, price fields are `null` and `position_size_pct` is 0.
 
-## Testing (TDD priority: the deterministic layer)
+## Testing (TDD)
 
-Core (`analysis.ts`, `risk.ts`) — full unit coverage:
-- ATR(14) matches a hand-computed value on a fixed candle series.
-- Trend structure classification (uptrend / downtrend / sideways).
-- Momentum agreement and divergence detection.
-- Sizing math: position size respects riskPct; crypto is half of stock for the
-  same inputs; stop/TP mirrored correctly for BUY vs SELL.
-- Every hard gate returns the right reason: insufficient data (<200 candles),
+Core is the whole feature now — full unit coverage of pure functions:
+- `analysis.ts`: ATR(14) matches a hand-computed value on a fixed candle series;
+  trend structure classification (uptrend / downtrend / sideways); momentum
+  agreement; divergence detection; volatility spike threshold.
+- `risk.ts`: sizing respects riskPct; crypto is half of stock for the same
+  inputs; volatility spike halves size; stop/TP mirrored correctly for BUY vs
+  SELL; every gate returns the right reason (insufficient data <200 candles,
   daily ≥2%, weekly ≥5%, stock market closed, trend/momentum conflict, adding to
-  a loser.
+  a loser).
+- `decision.ts`: agreed uptrend → BUY with a computed confidence and non-null
+  prices; sideways → HOLD; a blocked gate → HOLD with confidence 0 and the right
+  flag; divergence subtracts ≥20; volatility spike subtracts 10 and halves size;
+  reasoning string contains the expected facts.
 
-Web (mocked LLM client):
-- Orchestration assembles the schema with code-computed prices.
-- **Invariant:** a code-forced HOLD stays HOLD even if the fake LLM returns BUY.
-- Divergence subtracts ≥20 confidence.
-- Missing API key → 503 analyzer_disabled.
-- Malformed LLM output → safe HOLD.
+Web (`analyzeService` + route) with a fake `KlineCache`:
+- Assembles the schema end-to-end from fixture klines.
+- Insufficient/errored klines → safe HOLD.
+- Request validation rejects missing/non-finite fields with `ApiError`.
 
 ## Out of scope (v1 / YAGNI)
 
+- No LLM / AI model, no external paid API, no API keys.
 - No frontend UI (backend JSON endpoint only; a panel is a later slice).
 - No persisted account/portfolio or live exchange integration — account state is
   caller-supplied per request.
 - No trade execution, no leverage, no trailing-stop variant (fixed RR TP only).
-- No streaming; single request/response.
