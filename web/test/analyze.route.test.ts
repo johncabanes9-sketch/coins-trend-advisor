@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import request from "supertest";
 import express, { type Express } from "express";
 import { analyzeRoutes } from "../src/routes/analyze.js";
 import { errorMiddleware } from "../src/errors.js";
-import { DEFAULT_RISK_CONFIG, type SwingSignal } from "@coins-trend-advisor/core";
+import type { SwingSignal } from "@coins-trend-advisor/core";
 import type { AppDeps } from "../src/server.js";
 
 function buySignal(): SwingSignal {
@@ -13,10 +13,17 @@ function buySignal(): SwingSignal {
   };
 }
 
-function makeApp(analyzeImpl: () => Promise<SwingSignal>): Express {
+interface MakeAppOpts {
+  // Return undefined to simulate a disabled asset class (e.g. stocks with no key).
+  resolveProvider?: (assetClass: string) => { allowedIntervals: string[] } | undefined;
+}
+
+function makeApp(analyzeImpl: () => Promise<SwingSignal>, opts: MakeAppOpts = {}): Express {
+  const resolve = opts.resolveProvider ?? (() => ({ allowedIntervals: ["1d", "1h", "D"] }));
   const deps = {
     config: { cryptoInterval: "1d", stockInterval: "D" },
     analyze: { analyze: analyzeImpl },
+    registry: { resolve },
   } as unknown as AppDeps;
   const app = express();
   app.use(express.json());
@@ -53,5 +60,17 @@ describe("POST /api/analyze/:assetClass", () => {
     const app = makeApp(async () => buySignal());
     const res = await request(app).post("/api/analyze/gold").send(body);
     expect(res.status).toBe(400);
+  });
+  it("rejects an interval the provider does not allow", async () => {
+    const app = makeApp(async () => buySignal());
+    const res = await request(app).post("/api/analyze/crypto").send({ ...body, interval: "7x" });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("invalid_interval");
+  });
+  it("returns 503 when the asset class has no configured provider", async () => {
+    const app = makeApp(async () => buySignal(), { resolveProvider: () => undefined });
+    const res = await request(app).post("/api/analyze/stock").send({ ...body, interval: "D" });
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("stocks_disabled");
   });
 });

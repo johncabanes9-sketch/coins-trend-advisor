@@ -46,6 +46,15 @@ export function analyzeRoutes(deps: AppDeps): Router {
     "/analyze/:assetClass",
     asyncHandler(async (req, res) => {
       const assetClass: AssetClass = parseAssetClass(req.params.assetClass);
+
+      // Surface configuration errors as clean 4xx/503 (matching the signals and
+      // forecast routes) instead of letting them collapse into a fetch failure
+      // that the service reports as a HOLD.
+      const provider = deps.registry.resolve(assetClass);
+      if (!provider) {
+        throw new ApiError("stocks_disabled", 503, "Stock data is not configured");
+      }
+
       const body = (req.body ?? {}) as Record<string, unknown>;
 
       if (typeof body.symbol !== "string" || body.symbol.trim() === "") {
@@ -61,6 +70,13 @@ export function analyzeRoutes(deps: AppDeps): Router {
             : (() => {
                 throw new ApiError("invalid_input", 400, "interval must be a non-empty string");
               })();
+      if (!provider.allowedIntervals.includes(interval)) {
+        throw new ApiError(
+          "invalid_interval",
+          400,
+          `interval must be one of ${provider.allowedIntervals.join(", ")}`,
+        );
+      }
 
       const account = parseAccount(body);
       const signal = await deps.analyze.analyze(assetClass, body.symbol, interval, account);
