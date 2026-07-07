@@ -65,4 +65,41 @@ describe("api client", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body)).entryPrice).toBe(1);
   });
+
+  it("posts analyze as a flat body with symbol, interval and account fields", async () => {
+    const signal = {
+      action: "BUY", confidence: 72, entry_price: 100, stop_loss: 95,
+      take_profit: 110, position_size_pct: 0.1, reasoning: "uptrend", risk_flags: [],
+    };
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => jsonResponse(signal));
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await api.postAnalyze("crypto", {
+      symbol: "BTCPHP",
+      interval: "1h",
+      account: { equity: 10000, position: null, lossToDate: { dayPct: 0, weekPct: 0 }, marketStatus: "open" },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error("expected ok");
+    expect(r.data.action).toBe("BUY");
+    expect(String(fetchMock.mock.calls[0]![0])).toBe("/api/analyze/crypto");
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(init.method).toBe("POST");
+    const sent = JSON.parse(String(init.body));
+    expect(sent.symbol).toBe("BTCPHP");
+    expect(sent.interval).toBe("1h");
+    expect(sent.equity).toBe(10000);
+    expect(sent.lossToDate.dayPct).toBe(0);
+    expect(sent.marketStatus).toBe("open");
+  });
+
+  it("maps an invalid_interval 400 from analyze into an error result", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ error: { code: "invalid_interval", message: "bad" } }, 400)));
+    const r = await api.postAnalyze("crypto", {
+      symbol: "BTCPHP", interval: "9z",
+      account: { equity: 1, position: null, lossToDate: { dayPct: 0, weekPct: 0 } },
+    });
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("expected error");
+    expect(r.error.code).toBe("invalid_interval");
+  });
 });
