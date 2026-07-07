@@ -1,0 +1,417 @@
+/* Coins Trend Advisor — trading read-out.
+   Design rule: red/green/amber belong to trend signals (they are data).
+   The brand accent is teal so it never competes with a directional colour. */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #eef2f3;
+  --surface: #ffffff;
+  --surface-2: #f4f7f8;
+  --border: #d3dde2;
+  --text: #0a1620;
+  --muted: #566772;
+  --accent: #0d8f86;
+
+  --buy: #0f9d63;
+  --sell: #d63b57;
+  --hold: #b7860f;
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(10, 22, 32, 0.06), 0 6px 20px -12px rgba(10, 22, 32, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a1620;
+    --surface: #0f2130;
+    --surface-2: #14293a;
+    --border: #1e3a4d;
+    --text: #e7f0f4;
+    --muted: #7f97a4;
+    --accent: #2dd4bf;
+
+    --buy: #34d399;
+    --sell: #fb5a76;
+    --hold: #e0b13a;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px -16px rgba(0, 0, 0, 0.7);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1;
+}
+
+/* tabular figures everywhere numbers appear */
+.indicators dd,
+.forecast-value,
+.band-bar-ends,
+.seg-btn,
+.field input,
+.field select {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- shell ---- */
+.app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 32px;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand h1 {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(1.15rem, 1rem + 1.4vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+/* the one flourish: a live-market tick before the name */
+.brand h1::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.55em;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  vertical-align: 0.06em;
+}
+.tagline {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* ---- controls ---- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.82rem / 1 var(--mono);
+  letter-spacing: 0.03em;
+  padding: 8px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field > span {
+  font: 600 0.66rem / 1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field input,
+.field select {
+  font: 0.9rem var(--ui);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.field select { min-width: 72px; }
+.field input[type="number"] { width: 84px; }
+.field-token input { width: 168px; }
+
+:where(input, select, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- sections ---- */
+.section { margin-top: 32px; }
+.section-title {
+  margin: 0 0 14px;
+  font: 600 0.7rem / 1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---- lookup ---- */
+.lookup-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.lookup-form label {
+  font: 600 0.66rem / 1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lookup-form input {
+  font: 0.95rem var(--mono);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  flex: 1 1 180px;
+  max-width: 280px;
+}
+.lookup-form button {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #04191c;
+  font: 600 0.85rem var(--ui);
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.lookup-form button:hover { filter: brightness(1.06); }
+.lookup > .card { max-width: 360px; }
+
+/* ---- dashboard grid ---- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 16px;
+}
+
+/* ---- card ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-head h3 {
+  margin: 0;
+  margin-right: auto;
+  font: 600 1.05rem var(--mono);
+  letter-spacing: 0.02em;
+}
+.stale-tag {
+  font: 600 0.6rem / 1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hold);
+  border: 1px solid color-mix(in oklab, var(--hold) 45%, transparent);
+  border-radius: 999px;
+  padding: 3px 7px;
+}
+
+/* ---- trend badge: the signature illuminated status pill ---- */
+.trend-badge {
+  font: 600 0.72rem / 1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) 16%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--tone) 55%, transparent),
+    0 0 16px -4px var(--tone);
+}
+.trend-badge[data-trend="buy"] { --tone: var(--buy); }
+.trend-badge[data-trend="sell"] { --tone: var(--sell); }
+.trend-badge[data-trend="hold"] { --tone: var(--hold); }
+
+/* ---- indicators ---- */
+.indicators {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.indicators div { display: flex; justify-content: space-between; gap: 8px; }
+.indicators dt { color: var(--muted); font-size: 0.78rem; }
+.indicators dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ---- forecast + band ---- */
+.forecast {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.forecast-value {
+  font: 600 1.1rem var(--mono);
+  color: var(--accent);
+}
+.forecast-h { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+
+.band-bar { display: flex; flex-direction: column; gap: 5px; }
+.band-bar-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--sell) 35%, var(--surface-2)),
+    var(--surface-2) 50%,
+    color-mix(in oklab, var(--buy) 35%, var(--surface-2))
+  );
+  border: 1px solid var(--border);
+}
+.band-bar-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 10px -1px var(--accent);
+}
+.band-bar-ends {
+  display: flex;
+  justify-content: space-between;
+  font: 0.7rem var(--mono);
+  color: var(--muted);
+}
+
+/* ---- notes / panels ---- */
+.muted { color: var(--muted); }
+.note { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.note.error { color: var(--sell); }
+.panel {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.panel p { margin: 0 0 6px; }
+.panel code {
+  font-family: var(--mono);
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+@media (max-width: 560px) {
+  .app-header { align-items: stretch; }
+  .controls { width: 100%; }
+  .field-token { flex: 1 1 100%; }
+  .field-token input { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+.profit-calc {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.profit-calc-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.profit-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+.profit-calc-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.profit-calc-grid input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.profit-calc-grid input:focus {
+  outline: 2px solid var(--accent);
+}
+.profit-result {
+  margin-top: 0.8rem;
+}
+.profit-net {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.profit-result[data-sign="positive"] .profit-net { color: var(--buy); }
+.profit-result[data-sign="negative"] .profit-net { color: var(--sell); }
+.profit-detail {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

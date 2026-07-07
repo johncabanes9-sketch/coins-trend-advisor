@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { AssetClass } from "@coins-trend-advisor/core";
 
 export interface WatchlistEntry {
@@ -17,6 +18,7 @@ export interface AppConfig {
   klineLimit: number;
   forecastHorizon: number;
   apiToken?: string;
+  staticDir?: string;
 }
 
 const DEFAULT_WATCHLIST: WatchlistEntry[] = [
@@ -76,5 +78,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     klineLimit: num(env, "KLINE_LIMIT", 200),
     forecastHorizon: num(env, "FORECAST_HORIZON", 5),
     apiToken: env.API_TOKEN || undefined,
+    staticDir:
+      env.STATIC_DIR ||
+      fileURLToPath(new URL("../../frontend/dist", import.meta.url)),
   };
 }

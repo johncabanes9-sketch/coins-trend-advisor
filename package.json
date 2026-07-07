@@ -2,5 +2,11 @@
   "name": "coins-trend-advisor",
   "version": "0.0.0",
   "private": true,
-  "workspaces": ["core", "web"]
+  "workspaces": ["core", "web", "frontend"],
+  "scripts": {
+    "build": "npm run build -w core && npm run build -w frontend",
+    "dev": "npm run dev -w web & npm run dev -w frontend",
+    "test": "npm run test -w core && npm run test -w web && npm run test -w frontend",
+    "typecheck": "npm run typecheck -w core && npm run typecheck -w web && npm run typecheck -w frontend"
+  }
 }

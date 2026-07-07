@@ -85,4 +85,38 @@ describe("forecast route", () => {
     expect(res.status).toBe(503);
     expect(res.body.error.code).toBe("stocks_disabled");
   });
+
+  it("GET /api/forecast/:assetClass returns a list over the watchlist", async () => {
+    const res = await request(makeApp({})).get("/api/forecast/crypto");
+    expect(res.status).toBe(200);
+    expect(res.body.assetClass).toBe("crypto");
+    expect(res.body.interval).toBe("1h");
+    expect(res.body.horizon).toBe(5);
+    expect(res.body.results).toHaveLength(1);
+    expect(res.body.results[0].symbol).toBe("BTCPHP");
+    expect(res.body.results[0].status).toBe("ok");
+    expect(res.body.results[0].forecast.method).toBe("holt-linear");
+  });
+
+  it("honors ?horizon on the list route", async () => {
+    const res = await request(makeApp({})).get("/api/forecast/crypto?horizon=8");
+    expect(res.status).toBe(200);
+    expect(res.body.horizon).toBe(8);
+    expect(res.body.results[0].forecast.horizon).toBe(8);
+  });
+
+  it("sanitizes a per-symbol upstream error in the list", async () => {
+    const res = await request(
+      makeApp({ crypto: async () => { throw new Error("Coins.ph 500: secret upstream body"); } }),
+    ).get("/api/forecast/crypto");
+    expect(res.status).toBe(200);
+    expect(res.body.results[0].status).toBe("error");
+    expect(res.body.results[0].message).not.toContain("secret upstream body");
+  });
+
+  it("returns 503 on the stock list when stocks are disabled", async () => {
+    const res = await request(makeApp({ stockEnabled: false })).get("/api/forecast/stock");
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("stocks_disabled");
+  });
 });
