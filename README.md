@@ -63,7 +63,7 @@ All routes are under `/api`, JSON in and out. Errors always have the shape `{ "e
 | `GET /api/forecast/:assetClass/:symbol` | Holt-linear forecast + ~80% confidence band. `?interval=…&horizon=N` |
 | `GET /api/pairs/:assetClass` | Symbols available from the provider (cached 1h). |
 | `POST /api/profit` | Profit calculator. JSON body: `{ entryPrice, positionSize, targetPrice, feePct }` (all finite numbers). |
-| `POST /api/analyze/:assetClass` | Deterministic swing-signal analysis (free, no LLM). JSON body: `{ symbol, interval?, equity, position?, lossToDate?, marketStatus? }`. Response: `{ action: "BUY"/"SELL"/"HOLD", confidence, entry_price, stop_loss, take_profit, position_size_pct, reasoning, risk_flags }`. Analysis-only; never places trades and risk limits cannot be overridden. |
+| `POST /api/analyze/:assetClass` | Deterministic swing-signal analysis (free, no LLM). JSON body: `{ symbol, interval?, equity, position?, lossToDate?, marketStatus? }`. Response: `{ action: "BUY"/"SELL"/"HOLD", confidence, entry_price, stop_loss, take_profit, position_size_pct, reasoning, risk_flags }`. Analysis-only; never places trades and risk limits cannot be overridden. position_size_pct is a flat percent of equity; the equity field is currently informational (validated but does not scale sizing). |
 
 Status codes: `422 insufficient_data` (fewer than 35 candles), `502 upstream_unavailable` (provider failed), `503 stocks_disabled` (stock route with no Finnhub key), `400` for an unknown asset class / interval / horizon.
 
@@ -103,7 +103,7 @@ All optional, via environment variables:
 | `FINNHUB_API_KEY` | — | **Required to enable stocks.** Without it, stock routes return `503 stocks_disabled` (crypto is unaffected). |
 | `CRYPTO_INTERVAL` | `1h` | Default interval for crypto when none is supplied |
 | `STOCK_INTERVAL` | `D` | Default interval for stocks |
-| `KLINE_LIMIT` | `200` | Candles requested per fetch |
+| `KLINE_LIMIT` | `250` | Candles requested per fetch |
 | `FORECAST_HORIZON` | `5` | Default forecast horizon (steps) |
 | `SIGNAL_TTL_MS` | `300000` | Cache TTL for candles (shared by signals + forecasts) |
 | `RISK_PCT` | `0.75` | Risk per trade as % of equity (swing-signal analyzer) |

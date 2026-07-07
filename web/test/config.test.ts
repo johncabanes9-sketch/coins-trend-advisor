@@ -11,7 +11,7 @@ describe("loadConfig", () => {
     expect(c.signalTtlMs).toBe(300000);
     expect(c.cryptoInterval).toBe("1h");
     expect(c.stockInterval).toBe("D");
-    expect(c.klineLimit).toBe(200);
+    expect(c.klineLimit).toBe(250);
     expect(c.forecastHorizon).toBe(5);
     expect(c.watchlist).toEqual([
       { assetClass: "crypto", symbol: "BTCPHP" },

@@ -77,7 +77,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     signalTtlMs: num(env, "SIGNAL_TTL_MS", 300000),
     cryptoInterval: env.CRYPTO_INTERVAL ?? "1h",
     stockInterval: env.STOCK_INTERVAL ?? "D",
-    klineLimit: num(env, "KLINE_LIMIT", 200),
+    klineLimit: num(env, "KLINE_LIMIT", 250),
     forecastHorizon: num(env, "FORECAST_HORIZON", 5),
     apiToken: env.API_TOKEN || undefined,
     staticDir:
