@@ -37,7 +37,7 @@ it("blocks submit with an inline error when equity is not finite", async () => {
   await userEvent.type(screen.getByLabelText(/symbol/i), "BTCPHP");
   await userEvent.clear(screen.getByLabelText(/equity/i));
   await userEvent.click(screen.getByRole("button", { name: /analy/i }));
-  expect(await screen.findByText(/equity/i)).toBeInTheDocument();
+  expect(await screen.findByText("Enter valid numbers for the account fields above.")).toBeInTheDocument();
   expect(spy).not.toHaveBeenCalled();
 });
 
