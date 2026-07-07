@@ -4,6 +4,7 @@ import { setApiToken } from "./api.js";
 import { Controls, defaultInterval } from "./components/Controls.js";
 import { Lookup } from "./components/Lookup.js";
 import { Dashboard } from "./components/Dashboard.js";
+import { SwingAnalyzer } from "./components/SwingAnalyzer.js";
 
 const TOKEN_KEY = "cta.token";
 
@@ -46,6 +47,11 @@ export function App() {
       <section className="section">
         <h2 className="section-title">Look up a symbol</h2>
         <Lookup assetClass={assetClass} interval={interval} horizon={horizon} />
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Swing analysis</h2>
+        <SwingAnalyzer assetClass={assetClass} interval={interval} />
       </section>
 
       <section className="section">

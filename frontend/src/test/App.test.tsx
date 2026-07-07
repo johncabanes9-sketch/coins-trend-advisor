@@ -25,7 +25,7 @@ it("renders the app title", async () => {
 
 it("renders both the lookup form and the dashboard", async () => {
   render(<App />);
-  expect(screen.getByLabelText(/symbol/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /look up/i })).toBeInTheDocument();
   await waitFor(() => expect(api.getSignals).toHaveBeenCalledWith("crypto", "1h"));
   await settle();
 });
@@ -44,4 +44,9 @@ it("wires the token field into the api client", async () => {
   await userEvent.type(screen.getByLabelText(/api token/i), "s3cret");
   await waitFor(() => expect(setToken).toHaveBeenLastCalledWith("s3cret"));
   await settle();
+});
+
+it("renders the Swing analysis section", async () => {
+  render(<App />);
+  expect(await screen.findByText(/swing analysis/i)).toBeInTheDocument();
 });

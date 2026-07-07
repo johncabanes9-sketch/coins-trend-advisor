@@ -415,3 +415,17 @@ body {
   font-size: 0.78rem;
   color: var(--muted);
 }
+
+/* ---- swing analyzer ---- */
+.swing-form { flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.swing-form label { font-size: 0.85rem; color: var(--muted); }
+.swing-form input, .swing-form select { max-width: 8rem; }
+.swing-position { width: 100%; }
+.swing-position summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); }
+.swing-confidence { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); }
+.swing-levels { margin-top: 0.5rem; }
+.risk-flags { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.risk-flag {
+  font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--sell) 15%, transparent); color: var(--sell);
+}
