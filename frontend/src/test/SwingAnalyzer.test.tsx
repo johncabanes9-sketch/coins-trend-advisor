@@ -31,6 +31,20 @@ it("submits symbol + account and renders the decision card", async () => {
   expect(body.account.position).toBeNull();
 });
 
+it("sends a non-null position when both size and entry price are filled", async () => {
+  const spy = vi.spyOn(api, "postAnalyze").mockResolvedValue(okSignal);
+  render(<SwingAnalyzer assetClass="crypto" interval="1h" />);
+  await userEvent.type(screen.getByLabelText(/symbol/i), "BTCPHP");
+  await userEvent.clear(screen.getByLabelText(/equity/i));
+  await userEvent.type(screen.getByLabelText(/equity/i), "10000");
+  await userEvent.type(screen.getByLabelText(/size/i), "0.5");
+  await userEvent.type(screen.getByLabelText(/entry price/i), "98");
+  await userEvent.click(screen.getByRole("button", { name: /analy/i }));
+  await waitFor(() => expect(screen.getByText("BUY")).toBeInTheDocument());
+  const [, body] = spy.mock.calls[0]!;
+  expect(body.account.position).toEqual({ size: 0.5, entryPrice: 98 });
+});
+
 it("blocks submit with an inline error when equity is not finite", async () => {
   const spy = vi.spyOn(api, "postAnalyze").mockResolvedValue(okSignal);
   render(<SwingAnalyzer assetClass="crypto" interval="1h" />);
