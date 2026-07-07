@@ -66,3 +66,18 @@ describe("loadConfig", () => {
     ]);
   });
 });
+
+describe("loadConfig risk", () => {
+  it("defaults risk config", () => {
+    const c = loadConfig({} as NodeJS.ProcessEnv);
+    expect(c.risk).toEqual({
+      riskPct: 0.75, rewardRisk: 2, atrBufferStock: 1.75,
+      atrBufferCrypto: 2.0, cryptoSizeFactor: 0.5, volatilitySizeFactor: 0.5,
+    });
+  });
+  it("overrides risk config from env", () => {
+    const c = loadConfig({ RISK_PCT: "0.5", REWARD_RISK: "3" } as unknown as NodeJS.ProcessEnv);
+    expect(c.risk.riskPct).toBe(0.5);
+    expect(c.risk.rewardRisk).toBe(3);
+  });
+});
