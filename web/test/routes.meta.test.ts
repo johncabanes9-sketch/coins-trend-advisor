@@ -4,8 +4,10 @@ import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 import type { AppConfig, WatchlistEntry } from "../src/config.js";
 import type { AssetClass, MarketDataProvider } from "@coins-trend-advisor/core";
+import { DEFAULT_RISK_CONFIG } from "@coins-trend-advisor/core";
 
 function provider(assetClass: AssetClass, listSymbols: () => Promise<string[]>): MarketDataProvider {
   return {
@@ -28,12 +30,14 @@ function makeApp(opts: { watchlist?: WatchlistEntry[]; symbols?: string[]; stock
       { assetClass: "stock", symbol: "AAPL" },
     ],
     signalTtlMs: 1000, cryptoInterval: "1h", stockInterval: "D", klineLimit: 200, forecastHorizon: 5, apiToken: undefined,
+    risk: DEFAULT_RISK_CONFIG,
   };
   const registry = { resolve: (ac: AssetClass) => (ac === "crypto" ? crypto : ac === "stock" ? stock : null) };
   const cache = new KlineCache({ resolveProvider: (ac) => registry.resolve(ac)!, ttlMs: 1000, klineLimit: 200 });
   const signals = new SignalService({ cache });
   const forecasts = new ForecastService({ cache });
-  return { app: createApp({ config, registry, cache, signals, forecasts }), listSymbols };
+  const analyze = new AnalyzeService({ cache, risk: config.risk });
+  return { app: createApp({ config, registry, cache, signals, forecasts, analyze }), listSymbols };
 }
 
 describe("meta routes", () => {

@@ -4,9 +4,10 @@ import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 import type { AppConfig } from "../src/config.js";
 import type { AssetClass, Kline, MarketDataProvider } from "@coins-trend-advisor/core";
-import { DISCLAIMER } from "@coins-trend-advisor/core";
+import { DISCLAIMER, DEFAULT_RISK_CONFIG } from "@coins-trend-advisor/core";
 
 function ramp(n: number): Kline[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -32,13 +33,14 @@ function makeApp(opts: { crypto?: MarketDataProvider["getKlines"]; stockEnabled?
     finnhubApiKey: opts.stockEnabled ? "fk" : undefined,
     watchlist: [{ assetClass: "crypto", symbol: "BTCPHP" }],
     signalTtlMs: 1000, cryptoInterval: "1h", stockInterval: "D", klineLimit: 200,
-    apiToken: undefined, forecastHorizon: 5,
+    apiToken: undefined, forecastHorizon: 5, risk: DEFAULT_RISK_CONFIG,
   };
   const registry = { resolve: (ac: AssetClass) => (ac === "crypto" ? crypto : ac === "stock" ? stock : null) };
   const cache = new KlineCache({ resolveProvider: (ac) => registry.resolve(ac)!, ttlMs: 1000, klineLimit: 200 });
   const signals = new SignalService({ cache });
   const forecasts = new ForecastService({ cache });
-  return createApp({ config, registry, cache, signals, forecasts });
+  const analyze = new AnalyzeService({ cache, risk: config.risk });
+  return createApp({ config, registry, cache, signals, forecasts, analyze });
 }
 
 describe("forecast route", () => {

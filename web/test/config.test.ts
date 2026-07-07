@@ -11,7 +11,7 @@ describe("loadConfig", () => {
     expect(c.signalTtlMs).toBe(300000);
     expect(c.cryptoInterval).toBe("1h");
     expect(c.stockInterval).toBe("D");
-    expect(c.klineLimit).toBe(200);
+    expect(c.klineLimit).toBe(250);
     expect(c.forecastHorizon).toBe(5);
     expect(c.watchlist).toEqual([
       { assetClass: "crypto", symbol: "BTCPHP" },
@@ -64,5 +64,20 @@ describe("loadConfig", () => {
       { assetClass: "crypto", symbol: "SOLPHP" },
       { assetClass: "crypto", symbol: "USDTPHP" },
     ]);
+  });
+});
+
+describe("loadConfig risk", () => {
+  it("defaults risk config", () => {
+    const c = loadConfig({} as NodeJS.ProcessEnv);
+    expect(c.risk).toEqual({
+      riskPct: 0.75, rewardRisk: 2, atrBufferStock: 1.75,
+      atrBufferCrypto: 2.0, cryptoSizeFactor: 0.5, volatilitySizeFactor: 0.5,
+    });
+  });
+  it("overrides risk config from env", () => {
+    const c = loadConfig({ RISK_PCT: "0.5", REWARD_RISK: "3" } as unknown as NodeJS.ProcessEnv);
+    expect(c.risk.riskPct).toBe(0.5);
+    expect(c.risk.rewardRisk).toBe(3);
   });
 });

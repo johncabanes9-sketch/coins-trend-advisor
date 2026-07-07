@@ -6,6 +6,7 @@ import { buildRegistry } from "../src/providers.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 
 function makeApp() {
   const config = loadConfig({});
@@ -17,7 +18,8 @@ function makeApp() {
   });
   const signals = new SignalService({ cache });
   const forecasts = new ForecastService({ cache });
-  return createApp({ config, registry, cache, signals, forecasts });
+  const analyze = new AnalyzeService({ cache, risk: config.risk });
+  return createApp({ config, registry, cache, signals, forecasts, analyze });
 }
 
 describe("health + 404", () => {

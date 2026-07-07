@@ -3,6 +3,7 @@ import { buildRegistry } from "./providers.js";
 import { KlineCache } from "./klineCache.js";
 import { SignalService } from "./signalService.js";
 import { ForecastService } from "./forecastService.js";
+import { AnalyzeService } from "./analyzeService.js";
 import { createApp } from "./server.js";
 
 const config = loadConfig();
@@ -18,7 +19,8 @@ const cache = new KlineCache({
 });
 const signals = new SignalService({ cache });
 const forecasts = new ForecastService({ cache });
-const app = createApp({ config, registry, cache, signals, forecasts });
+const analyze = new AnalyzeService({ cache, risk: config.risk });
+const app = createApp({ config, registry, cache, signals, forecasts, analyze });
 
 app.listen(config.port, () => {
   console.log(`web backend listening on :${config.port}`);

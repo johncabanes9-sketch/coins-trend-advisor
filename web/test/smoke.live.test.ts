@@ -6,6 +6,7 @@ import { buildRegistry } from "../src/providers.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 
 describe.skipIf(process.env.RUN_SMOKE !== "1")("live smoke", () => {
   function boot() {
@@ -22,7 +23,8 @@ describe.skipIf(process.env.RUN_SMOKE !== "1")("live smoke", () => {
     });
     const signals = new SignalService({ cache });
     const forecasts = new ForecastService({ cache });
-    return createApp({ config, registry, cache, signals, forecasts });
+    const analyze = new AnalyzeService({ cache, risk: config.risk });
+    return createApp({ config, registry, cache, signals, forecasts, analyze });
   }
 
   it("computes a real crypto signal for BTCPHP", async () => {

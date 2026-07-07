@@ -5,15 +5,17 @@ import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 import type { AppConfig } from "../src/config.js";
 import type { AssetClass, MarketDataProvider } from "@coins-trend-advisor/core";
+import { DEFAULT_RISK_CONFIG } from "@coins-trend-advisor/core";
 
 function baseConfig(staticDir?: string): AppConfig {
   return {
     port: 3001, coinsBaseUrl: "http://example.test", finnhubBaseUrl: "http://finnhub.test",
     finnhubApiKey: undefined, watchlist: [{ assetClass: "crypto", symbol: "BTCPHP" }],
     signalTtlMs: 1000, cryptoInterval: "1h", stockInterval: "D", klineLimit: 200,
-    forecastHorizon: 5, apiToken: undefined, staticDir,
+    forecastHorizon: 5, apiToken: undefined, staticDir, risk: DEFAULT_RISK_CONFIG,
   };
 }
 
@@ -26,7 +28,9 @@ function makeApp(staticDir?: string) {
   const cache = new KlineCache({ resolveProvider: (ac) => registry.resolve(ac)!, ttlMs: 1000, klineLimit: 200 });
   const signals = new SignalService({ cache });
   const forecasts = new ForecastService({ cache });
-  return createApp({ config: baseConfig(staticDir), registry, cache, signals, forecasts });
+  const config = baseConfig(staticDir);
+  const analyze = new AnalyzeService({ cache, risk: config.risk });
+  return createApp({ config, registry, cache, signals, forecasts, analyze });
 }
 
 const FIXTURE_DIST = fileURLToPath(new URL("./fixtures/dist", import.meta.url));

@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
-import type { AssetClass } from "@coins-trend-advisor/core";
+import type { AssetClass, RiskConfig } from "@coins-trend-advisor/core";
+import { DEFAULT_RISK_CONFIG } from "@coins-trend-advisor/core";
 
 export interface WatchlistEntry {
   assetClass: AssetClass;
@@ -19,6 +20,7 @@ export interface AppConfig {
   forecastHorizon: number;
   apiToken?: string;
   staticDir?: string;
+  risk: RiskConfig;
 }
 
 const DEFAULT_WATCHLIST: WatchlistEntry[] = [
@@ -75,11 +77,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     signalTtlMs: num(env, "SIGNAL_TTL_MS", 300000),
     cryptoInterval: env.CRYPTO_INTERVAL ?? "1h",
     stockInterval: env.STOCK_INTERVAL ?? "D",
-    klineLimit: num(env, "KLINE_LIMIT", 200),
+    klineLimit: num(env, "KLINE_LIMIT", 250),
     forecastHorizon: num(env, "FORECAST_HORIZON", 5),
     apiToken: env.API_TOKEN || undefined,
     staticDir:
       env.STATIC_DIR ||
       fileURLToPath(new URL("../../frontend/dist", import.meta.url)),
+    risk: {
+      riskPct: num(env, "RISK_PCT", DEFAULT_RISK_CONFIG.riskPct),
+      rewardRisk: num(env, "REWARD_RISK", DEFAULT_RISK_CONFIG.rewardRisk),
+      atrBufferStock: num(env, "ATR_BUFFER_STOCK", DEFAULT_RISK_CONFIG.atrBufferStock),
+      atrBufferCrypto: num(env, "ATR_BUFFER_CRYPTO", DEFAULT_RISK_CONFIG.atrBufferCrypto),
+      cryptoSizeFactor: num(env, "CRYPTO_SIZE_FACTOR", DEFAULT_RISK_CONFIG.cryptoSizeFactor),
+      volatilitySizeFactor: num(env, "VOLATILITY_SIZE_FACTOR", DEFAULT_RISK_CONFIG.volatilitySizeFactor),
+    },
   };
 }

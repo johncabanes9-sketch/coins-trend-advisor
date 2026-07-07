@@ -4,9 +4,10 @@ import { createApp } from "../src/server.js";
 import { KlineCache } from "../src/klineCache.js";
 import { SignalService } from "../src/signalService.js";
 import { ForecastService } from "../src/forecastService.js";
+import { AnalyzeService } from "../src/analyzeService.js";
 import type { AppConfig, WatchlistEntry } from "../src/config.js";
 import type { AssetClass, Kline, MarketDataProvider } from "@coins-trend-advisor/core";
-import { DISCLAIMER } from "@coins-trend-advisor/core";
+import { DISCLAIMER, DEFAULT_RISK_CONFIG } from "@coins-trend-advisor/core";
 
 function candles(n: number): Kline[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -57,6 +58,7 @@ function makeApp(opts: {
     klineLimit: 200,
     forecastHorizon: 5,
     apiToken: undefined,
+    risk: DEFAULT_RISK_CONFIG,
   };
   const registry = {
     resolve: (ac: AssetClass) => (ac === "crypto" ? crypto : ac === "stock" ? stock : null),
@@ -68,7 +70,8 @@ function makeApp(opts: {
   });
   const signals = new SignalService({ cache });
   const forecasts = new ForecastService({ cache });
-  return createApp({ config, registry, cache, signals, forecasts });
+  const analyze = new AnalyzeService({ cache, risk: config.risk });
+  return createApp({ config, registry, cache, signals, forecasts, analyze });
 }
 
 describe("signals routes", () => {
