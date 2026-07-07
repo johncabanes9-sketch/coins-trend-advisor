@@ -63,6 +63,7 @@ All routes are under `/api`, JSON in and out. Errors always have the shape `{ "e
 | `GET /api/forecast/:assetClass/:symbol` | Holt-linear forecast + ~80% confidence band. `?interval=…&horizon=N` |
 | `GET /api/pairs/:assetClass` | Symbols available from the provider (cached 1h). |
 | `POST /api/profit` | Profit calculator. JSON body: `{ entryPrice, positionSize, targetPrice, feePct }` (all finite numbers). |
+| `POST /api/analyze/:assetClass` | Deterministic swing-signal analysis (free, no LLM). JSON body: `{ symbol, interval?, equity, position?, lossToDate?, marketStatus? }`. Response: `{ action: "BUY"/"SELL"/"HOLD", confidence, entry_price, stop_loss, take_profit, position_size_pct, reasoning, risk_flags }`. Analysis-only; never places trades and risk limits cannot be overridden. |
 
 Status codes: `422 insufficient_data` (fewer than 35 candles), `502 upstream_unavailable` (provider failed), `503 stocks_disabled` (stock route with no Finnhub key), `400` for an unknown asset class / interval / horizon.
 
@@ -105,6 +106,12 @@ All optional, via environment variables:
 | `KLINE_LIMIT` | `200` | Candles requested per fetch |
 | `FORECAST_HORIZON` | `5` | Default forecast horizon (steps) |
 | `SIGNAL_TTL_MS` | `300000` | Cache TTL for candles (shared by signals + forecasts) |
+| `RISK_PCT` | `0.75` | Risk per trade as % of equity (swing-signal analyzer) |
+| `REWARD_RISK` | `2` | Reward-to-risk ratio for take-profit targets |
+| `ATR_BUFFER_STOCK` | `1.75` | ATR multiplier for stock stop-loss placement |
+| `ATR_BUFFER_CRYPTO` | `2.0` | ATR multiplier for crypto stop-loss placement |
+| `CRYPTO_SIZE_FACTOR` | `0.5` | Position-size scaling for crypto (vs. stock baseline) |
+| `VOLATILITY_SIZE_FACTOR` | `0.5` | Position-size scaling for high-volatility markets |
 | `COINS_BASE_URL` | `https://api.pro.coins.ph` | Coins.ph API base |
 | `FINNHUB_BASE_URL` | `https://finnhub.io/api/v1` | Finnhub API base |
 | `API_TOKEN` | — | If set, every `/api` route except `/health` requires `Authorization: Bearer <token>` |
