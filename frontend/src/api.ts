@@ -14,6 +14,10 @@ export function setApiToken(token: string | null): void {
   apiToken = token;
 }
 
+export function initApiToken(env: { VITE_API_TOKEN?: string }): void {
+  setApiToken(env.VITE_API_TOKEN ?? null);
+}
+
 interface SignalsResponse { assetClass: AssetClass; interval: string; results: SignalItem[] }
 interface ForecastsResponse { assetClass: AssetClass; interval: string; horizon: number; results: ForecastItem[] }
 interface WatchlistResponse { entries: WatchlistEntry[] }

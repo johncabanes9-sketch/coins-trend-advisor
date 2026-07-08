@@ -103,3 +103,25 @@ describe("api client", () => {
     expect(r.error.code).toBe("invalid_interval");
   });
 });
+
+describe("initApiToken", () => {
+  it("sends the Authorization header after init with a token", async () => {
+    api.initApiToken({ VITE_API_TOKEN: "sekret" });
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => jsonResponse({ entries: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await api.getWatchlist();
+    const headers = (fetchMock.mock.calls[0]![1] as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer sekret");
+    api.setApiToken(null);
+  });
+
+  it("clears the token when VITE_API_TOKEN is absent", async () => {
+    api.setApiToken("stale");
+    api.initApiToken({});
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => jsonResponse({ entries: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await api.getWatchlist();
+    const headers = (fetchMock.mock.calls[0]![1] as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+  });
+});
