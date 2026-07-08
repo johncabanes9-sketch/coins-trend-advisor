@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@coins-trend-advisor/core": "*",
+    "@upstash/redis": "^1.38.0",
     "express": "^4.19.2"
   },
   "devDependencies": {

@@ -139,6 +139,11 @@ npm run typecheck -w web
 
 A live smoke test hits the real upstreams; it is skipped unless `RUN_SMOKE=1`.
 
+## Deploy
+
+See [docs/deploy-vercel.md](docs/deploy-vercel.md) for deploying the app to
+Vercel's free tier (static frontend + serverless backend + Upstash Redis cache).
+
 ## Not yet implemented
 
-Persistence (Postgres), scheduler, web-push, PWA/frontend, deployment, and any trained/heavyweight ML model. The `forecast()` seam allows swapping in a heavier model later without changing the API.
+Persistence (Postgres), scheduler, web-push, PWA, and any trained/heavyweight ML model. The `forecast()` seam allows swapping in a heavier model later without changing the API.
