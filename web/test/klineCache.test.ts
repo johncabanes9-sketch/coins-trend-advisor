@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { KlineCache } from "../src/klineCache.js";
+import { MemoryKlineStore } from "../src/klineStore.js";
 import type { Kline, MarketDataProvider, AssetClass } from "@coins-trend-advisor/core";
 
 function candles(n: number): Kline[] {
@@ -75,8 +76,12 @@ describe("KlineCache", () => {
   });
 
   it("dedups concurrent requests for the same key", async () => {
+    // Deferred created up front: the store lookup is async, so the provider is
+    // invoked a microtask later than the two getKlines calls — capture `resolve`
+    // before then rather than via the (now deferred) provider call.
     let resolve!: (v: Kline[]) => void;
-    const getKlines = vi.fn(() => new Promise<Kline[]>((res) => { resolve = res; }));
+    const gate = new Promise<Kline[]>((res) => { resolve = res; });
+    const getKlines = vi.fn(() => gate);
     const cache = cacheWith(getKlines);
     const p1 = cache.getKlines("crypto", "BTCPHP", "1h");
     const p2 = cache.getKlines("crypto", "BTCPHP", "1h");
@@ -148,5 +153,23 @@ describe("KlineCache", () => {
     expect(r.status).toBe("error");
     if (r.status !== "error") throw new Error("expected error");
     expect(r.message).toBe("kaboom");
+  });
+
+  it("uses an injected store for fresh hits", async () => {
+    const getKlines = vi.fn(async () => candles(60));
+    const provider = providerFrom(getKlines);
+    const store = new MemoryKlineStore();
+    const cache = new KlineCache({
+      resolveProvider: () => provider,
+      ttlMs: 1000,
+      klineLimit: 200,
+      now: () => 0,
+      store,
+    });
+    await cache.getKlines("crypto", "BTCPHP", "1h");
+    // Second call is a fresh hit served from the same injected store — no refetch.
+    await cache.getKlines("crypto", "BTCPHP", "1h");
+    expect(getKlines).toHaveBeenCalledTimes(1);
+    expect(await store.get("crypto:BTCPHP:1h")).not.toBeNull();
   });
 });

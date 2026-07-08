@@ -1,44 +1,32 @@
 import type { AssetClass, Kline, MarketDataProvider } from "@coins-trend-advisor/core";
+import { MemoryKlineStore, type KlineStore } from "./klineStore.js";
 
 export type KlinesResult =
   | { status: "ok"; klines: Kline[]; stale?: boolean; staleAsOf?: string }
   | { status: "error"; message: string };
-
-interface Entry {
-  klines: Kline[];
-  computedAt: number;
-}
 
 export interface KlineCacheDeps {
   resolveProvider(ac: AssetClass): MarketDataProvider;
   ttlMs: number;
   klineLimit: number;
   now?: () => number;
-  /** Cap on distinct cached keys before oldest are evicted. Bounds memory when
-   * the single-symbol route is hit with arbitrary symbols. Default 1000. */
+  /** Cap on distinct cached keys before oldest are evicted. Only used when no
+   * `store` is supplied (applies to the default in-memory store). Default 1000. */
   maxEntries?: number;
+  /** Backing store. Defaults to an in-memory store; production injects Redis. */
+  store?: KlineStore;
 }
 
-const DEFAULT_MAX_ENTRIES = 1000;
-
 export class KlineCache {
-  private readonly entries = new Map<string, Entry>();
+  private readonly store: KlineStore;
   private readonly inflight = new Map<string, Promise<KlinesResult>>();
 
-  constructor(private readonly deps: KlineCacheDeps) {}
+  constructor(private readonly deps: KlineCacheDeps) {
+    this.store = deps.store ?? new MemoryKlineStore({ maxEntries: deps.maxEntries });
+  }
 
   private clock(): number {
     return (this.deps.now ?? Date.now)();
-  }
-
-  /** Evict oldest entries (insertion order) once the cap is exceeded. */
-  private evictOverflow(): void {
-    const max = this.deps.maxEntries ?? DEFAULT_MAX_ENTRIES;
-    while (this.entries.size > max) {
-      const oldest = this.entries.keys().next().value;
-      if (oldest === undefined) break;
-      this.entries.delete(oldest);
-    }
   }
 
   async getKlines(
@@ -47,7 +35,7 @@ export class KlineCache {
     interval: string,
   ): Promise<KlinesResult> {
     const key = `${assetClass}:${symbol}:${interval}`;
-    const entry = this.entries.get(key);
+    const entry = await this.store.get(key);
     if (entry && this.clock() - entry.computedAt < this.deps.ttlMs) {
       return { status: "ok", klines: entry.klines };
     }
@@ -80,11 +68,10 @@ export class KlineCache {
     try {
       const provider = this.deps.resolveProvider(assetClass);
       const klines = await provider.getKlines(symbol, interval, this.deps.klineLimit);
-      this.entries.set(key, { klines, computedAt: this.clock() });
-      this.evictOverflow();
+      await this.store.set(key, { klines, computedAt: this.clock() });
       return { status: "ok", klines };
     } catch (err) {
-      const stale = this.entries.get(key);
+      const stale = await this.store.get(key);
       if (stale) {
         return {
           status: "ok",
