@@ -1,9 +1,11 @@
 import type {
+  AccountState,
   ApiResult,
   AssetClass,
   ForecastItem,
   ProfitResult,
   SignalItem,
+  SwingSignal,
   WatchlistEntry,
 } from "./types.js";
 
@@ -81,5 +83,16 @@ export function postProfit(body: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+  });
+}
+
+export function postAnalyze(
+  assetClass: AssetClass,
+  body: { symbol: string; interval: string; account: AccountState },
+): Promise<ApiResult<SwingSignal>> {
+  return request(`/api/analyze/${assetClass}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ symbol: body.symbol, interval: body.interval, ...body.account }),
   });
 }

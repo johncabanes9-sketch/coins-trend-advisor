@@ -1,6 +1,6 @@
-import type { AssetClass, Signal, Forecast } from "@coins-trend-advisor/core";
+import type { AssetClass, Signal, Forecast, SwingSignal, SwingAction, AccountState } from "@coins-trend-advisor/core";
 
-export type { AssetClass, Signal, Forecast };
+export type { AssetClass, Signal, Forecast, SwingSignal, SwingAction, AccountState };
 
 export interface ApiError {
   code: string;
