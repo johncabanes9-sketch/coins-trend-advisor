@@ -422,6 +422,7 @@ body {
 .swing-form input, .swing-form select { max-width: 8rem; }
 .swing-position { width: 100%; }
 .swing-position summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); }
+.swing-position-hint { margin-top: 0.35rem; }
 .swing-confidence { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); }
 .swing-levels { margin-top: 0.5rem; }
 .risk-flags { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; padding: 0; margin: 0.5rem 0 0; }

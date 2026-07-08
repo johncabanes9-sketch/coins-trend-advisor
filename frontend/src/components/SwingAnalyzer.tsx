@@ -20,6 +20,10 @@ export function SwingAnalyzer({ assetClass, interval }: { assetClass: AssetClass
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ symbol: string; signal: SwingSignal } | null>(null);
 
+  // A position needs both fields; if only one is filled it's silently treated as
+  // unset, so hint the user to complete it (non-blocking — analysis still runs).
+  const partialPosition = (posSize.trim() !== "") !== (posEntry.trim() !== "");
+
   useEffect(() => {
     let cancelled = false;
     getPairs(assetClass).then((r) => { if (!cancelled && r.ok) setSymbols(r.data.symbols); });
@@ -85,6 +89,9 @@ export function SwingAnalyzer({ assetClass, interval }: { assetClass: AssetClass
           <input id="swing-size" inputMode="decimal" value={posSize} onChange={(e) => setPosSize(e.target.value)} />
           <label htmlFor="swing-entry">Entry price</label>
           <input id="swing-entry" inputMode="decimal" value={posEntry} onChange={(e) => setPosEntry(e.target.value)} />
+          {partialPosition && (
+            <p className="note swing-position-hint">Enter both size and entry price to include your open position.</p>
+          )}
         </details>
 
         <label htmlFor="swing-market">Market</label>

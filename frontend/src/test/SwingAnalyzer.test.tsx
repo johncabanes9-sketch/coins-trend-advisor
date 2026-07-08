@@ -45,6 +45,16 @@ it("sends a non-null position when both size and entry price are filled", async 
   expect(body.account.position).toEqual({ size: 0.5, entryPrice: 98 });
 });
 
+it("hints to fill both fields when the open position is partially filled, then clears it", async () => {
+  render(<SwingAnalyzer assetClass="crypto" interval="1h" />);
+  const hint = /enter both size and entry price/i;
+  expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText(/size/i), "0.5");
+  expect(screen.getByText(hint)).toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText(/entry price/i), "98");
+  expect(screen.queryByText(hint)).not.toBeInTheDocument();
+});
+
 it("blocks submit with an inline error when equity is not finite", async () => {
   const spy = vi.spyOn(api, "postAnalyze").mockResolvedValue(okSignal);
   render(<SwingAnalyzer assetClass="crypto" interval="1h" />);
